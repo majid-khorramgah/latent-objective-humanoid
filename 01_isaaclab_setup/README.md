@@ -140,24 +140,26 @@ Goals:
 - Establish baseline for future objective-driven learning methods
 - ---
 
-# Visual Evidence
+---
 
-## Isaac Sim Environment
+## Demo Video
 
-The Isaac Sim environment was successfully initialized with Unitree H1 humanoid robots running in parallel simulation.
+The following video demonstrates the successful setup of NVIDIA Isaac Sim and Isaac Lab with the Unitree H1 humanoid robot.
 
-![Isaac Sim Environment](media/screenshots/isaac_sim_loaded.png)
+▶️ **Milestone 1 Demo: Isaac Lab Setup and Unitree H1 Simulation**
 
+[Watch the demonstration video on YouTube](https://youtu.be/vSZAUeN6fe8)
 
-## Unitree H1 Parallel Simulation
+---
 
-Multiple Unitree H1 humanoid robots were successfully loaded inside the Isaac Lab environment.
+## Simulation Screenshots
+
+### Isaac Sim Environment
+
+![Isaac Sim Loaded](media/screenshots/isaac_sim_loaded.png)
+
+### Unitree H1 Multi-Environment Simulation
 
 ![Unitree H1 Environment](media/screenshots/h1_environment.png)
 
-
-## Video Demonstration
-
-A short demonstration of the Isaac Lab environment and Unitree H1 simulation is available below:
-
-[Watch Unitree H1 Isaac Lab Simulation Demo](YOUR_VIDEO_LINK)
+---
