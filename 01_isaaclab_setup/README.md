@@ -138,3 +138,26 @@ Goals:
 - Evaluate learning performance
 - Record simulation results
 - Establish baseline for future objective-driven learning methods
+- ---
+
+# Visual Evidence
+
+## Isaac Sim Environment
+
+The Isaac Sim environment was successfully initialized with Unitree H1 humanoid robots running in parallel simulation.
+
+![Isaac Sim Environment](media/screenshots/isaac_sim_loaded.png)
+
+
+## Unitree H1 Parallel Simulation
+
+Multiple Unitree H1 humanoid robots were successfully loaded inside the Isaac Lab environment.
+
+![Unitree H1 Environment](media/screenshots/h1_environment.png)
+
+
+## Video Demonstration
+
+A short demonstration of the Isaac Lab environment and Unitree H1 simulation is available below:
+
+[Watch Unitree H1 Isaac Lab Simulation Demo](YOUR_VIDEO_LINK)
