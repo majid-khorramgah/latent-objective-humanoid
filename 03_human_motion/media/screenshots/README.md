@@ -105,7 +105,7 @@ mocap_framerate:
 Input example:
 
 
-![AMASS Input](media/screenshots/01_amass_input.png)
+![AMASS Input](01_amass_input.png)
 
 
 
@@ -127,7 +127,7 @@ The SMPL-X forward process generates:
 Example reconstruction:
 
 
-![SMPL-X Reconstruction](media/screenshots/02_smplx_reconstruction.png)
+![SMPL-X Reconstruction](02_smplx_reconstruction.png)
 
 
 
@@ -158,7 +158,7 @@ This validates that human motion capture data can be reconstructed into a physic
 After SMPL-X reconstruction, human motion is represented using 3D joint trajectories.
 
 
-![Joint Representation](media/screenshots/03_joint_representation.png)
+![Joint Representation](03_joint_representation.png)
 
 
 
@@ -209,7 +209,7 @@ energy
 Feature visualization:
 
 
-![Motion Features](media/screenshots/04_motion_features.png)
+![Motion Features](04_motion_features.png)
 
 
 
@@ -319,70 +319,6 @@ energy:
 
 
 These features will be used as input representation for future motion learning models.
-
-
-
----
-
-# Video Demonstrations
-
-
-## 1. Complete AMASS Human Motion Representation Pipeline
-
-
-Video:
-
-https://youtu.be/7GXgjzQQz9M
-
-
-Description:
-
-This video demonstrates the complete processing pipeline:
-
-AMASS Dataset → SMPL-X Reconstruction → Joint Representation → Motion Features
-
-
-It shows the full transformation from raw human motion capture data into structured representations for humanoid intelligence.
-
-
-
----
-
-## 2. Human Motion Skeleton Visualization using SMPL-X Joints
-
-
-Video:
-
-https://youtu.be/xa4SqUcY-bc
-
-
-Description:
-
-This demonstration shows the extracted 3D joint representation from SMPL-X and visualizes the human kinematic structure.
-
-The visualization confirms that the reconstructed motion preserves human body structure and temporal movement.
-
-
-
----
-
-## 3. SMPL-X Human Motion Reconstruction from AMASS Dataset
-
-
-Video:
-
-https://youtu.be/qbFpotjyROE
-
-
-Description:
-
-This video demonstrates the reconstruction of human motion sequences from AMASS pose parameters using the SMPL-X parametric body model.
-
-The reconstructed 3D body motion validates the correctness of the pose processing pipeline.
-
-
-
----
 
 # Future Work
 
