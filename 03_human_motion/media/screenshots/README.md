@@ -22,7 +22,7 @@ These representations provide the foundation for future **Motion Encoder**, **la
 # Pipeline Overview
 
 
-![Pipeline Overview](media/screenshots/05_pipeline_overview.png)
+![Pipeline Overview](05_pipeline_overview.png)
 
 
 The complete pipeline:
