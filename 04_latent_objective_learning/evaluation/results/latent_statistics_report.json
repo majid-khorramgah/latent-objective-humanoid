@@ -1,0 +1,64 @@
+{
+    "temporal": {
+        "name": "temporal",
+        "shape": [
+            97022,
+            32,
+            1024
+        ],
+        "mean": -2.0044657503603958e-05,
+        "std": 1.0007221698760986,
+        "variance": 1.001444697380066,
+        "min": -3.1271209716796875,
+        "max": 4.107711315155029,
+        "norm_mean": 181.1500244140625,
+        "norm_std": 0.018843835219740868,
+        "norm_min": 180.47616577148438,
+        "norm_max": 181.157958984375,
+        "active_dimensions": 32768,
+        "total_dimensions": 32768,
+        "active_ratio": 1.0,
+        "collapse_detected": false
+    },
+    "physics": {
+        "name": "physics",
+        "shape": [
+            97022,
+            8,
+            256
+        ],
+        "mean": 0.00045018456876277924,
+        "std": 0.9549410939216614,
+        "variance": 0.9119125008583069,
+        "min": -2.514838695526123,
+        "max": 2.980325698852539,
+        "norm_mean": 43.20731735229492,
+        "norm_std": 0.8514773845672607,
+        "norm_min": 19.139020919799805,
+        "norm_max": 43.49696731567383,
+        "active_dimensions": 2048,
+        "total_dimensions": 2048,
+        "active_ratio": 1.0,
+        "collapse_detected": false
+    },
+    "fusion": {
+        "name": "fusion",
+        "shape": [
+            97022,
+            512
+        ],
+        "mean": 1.6621743270661682e-05,
+        "std": 0.9982731342315674,
+        "variance": 0.9965492486953735,
+        "min": -2.940093994140625,
+        "max": 3.0462284088134766,
+        "norm_mean": 22.588340759277344,
+        "norm_std": 0.003203638130798936,
+        "norm_min": 22.56781768798828,
+        "norm_max": 22.593759536743164,
+        "active_dimensions": 512,
+        "total_dimensions": 512,
+        "active_ratio": 1.0,
+        "collapse_detected": false
+    }
+}
