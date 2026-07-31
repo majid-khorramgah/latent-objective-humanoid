@@ -14,25 +14,15 @@ The videos provide experimental evidence of the implemented research pipeline, i
 
 
 Human Motion Data
-
         ↓
-
 Foundation Dataset Preparation
-
         ↓
-
 Dataset Validation
-
         ↓
-
 Multi-Branch Motion Foundation Encoder
-
         ↓
-
 Latent Representation Evaluation
-
         ↓
-
 Latent Objective Discovery
 
 
