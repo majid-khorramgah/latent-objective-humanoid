@@ -38,7 +38,7 @@ Latent Objective Discovery
 
 ---
 
-# Stage 31 - Human Motion Foundation Dataset Preparation
+# Human Motion Foundation Dataset Preparation
 
 AMASS motion data preprocessing and chunk generation.
 
@@ -56,7 +56,7 @@ https://youtu.be/gy56TppYq2Y
 
 ---
 
-# Stage 31.5 - Dataset Validation
+# Dataset Validation
 
 Quality verification before model training.
 
@@ -75,7 +75,7 @@ https://youtu.be/JuzpZu3YJP4
 
 ---
 
-# Stage 32 - Multi-Branch Motion Foundation Encoder Training
+# Multi-Branch Motion Foundation Encoder Training
 
 Training of the foundation encoder with temporal and physics-aware branches.
 
@@ -100,7 +100,7 @@ https://youtu.be/krkdZHgmKPE
 
 ---
 
-# Stage 33 - Latent Representation Evaluation
+# Latent Representation Evaluation
 
 Evaluation of learned latent representations.
 
