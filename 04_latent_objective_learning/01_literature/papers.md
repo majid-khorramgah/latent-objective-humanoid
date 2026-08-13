@@ -126,3 +126,61 @@ A preliminary distinction relevant to our project is:
 > **Mombaur et al. learn objective parameters within a manually specified cost representation; they do not learn a latent objective representation itself.**
 
 Potential gaps concerning learned objective representations, morphology/dynamics transfer, constraint-aware MPC integration, and generalization remain **Not established yet** and must be evaluated against subsequent IOC, IRL, locomotion, and model-based control literature.
+
+
+### Mombaur, Truong & Laumond (2010)
+
+**Citation**
+Mombaur, K., Truong, A., & Laumond, J.-P. (2010). *From Human to Humanoid Locomotion—An Inverse Optimal Control Approach*. Autonomous Robots, 28(3), 369–383. DOI: 10.1007/s10514-009-9170-7.
+
+**Research Problem**
+Infer an underlying locomotion objective from observed human motion and use the inferred objective to generate humanoid locomotion, rather than directly reproducing human trajectories.
+
+**Input**
+Human motion-capture demonstrations of planar locomotion toward different target configurations. The motion representation focuses on the global position and orientation of the body rather than full-body joint trajectories.
+
+**Method**
+The authors formulate an inverse optimal control problem in which the locomotion cost is represented as a weighted combination of manually selected basis functions. The weights are inferred by repeatedly solving a forward optimal control problem and comparing the resulting trajectory with human demonstrations.
+
+**Objective / Cost**
+The final objective combines:
+
+* locomotion time,
+* squared forward acceleration,
+* squared rotational acceleration,
+* squared orthogonal acceleration,
+* alignment between body orientation and the direction toward the target.
+
+The objective representation is manually specified; IOC learns the corresponding weights rather than discovering the objective representation itself.
+
+**Validation**
+The objective is learned from multiple human demonstrations across different target scenarios and evaluated on additional held-out scenarios. The learned objective is able to reproduce characteristic human locomotion paths and generalize to unseen target configurations. The approach is also demonstrated in a human-to-humanoid transfer setting.
+
+**Main Finding**
+A shared locomotion objective can explain multiple human locomotion demonstrations and can be optimized to generate new trajectories rather than directly imitating observed trajectories.
+
+**Limitation**
+
+* The objective basis functions are manually designed rather than learned.
+* The locomotion model is simplified and does not capture full-body humanoid dynamics or contact-rich whole-body behavior.
+* The inferred objective is task-specific and does not establish a general latent representation of human objectives.
+* Transfer to humanoid motion relies on additional robot-specific motion-generation mechanisms.
+* Robustness to disturbances, changes in dynamics, and substantially different robot constraints is not systematically studied.
+* Objective identifiability remains limited because different cost formulations may produce similar observed trajectories.
+
+**Relevance to Our Project**
+**Very High.** This work is a direct predecessor of the Human Demonstrations → Objective Inference → Humanoid Motion pipeline proposed in our project. It establishes that human locomotion objectives can be inferred through IOC and subsequently used for motion generation.
+
+However, it also shows that **Human → IOC → Humanoid** alone is not a sufficient novelty claim. Our project must investigate whether a richer or learned objective representation can generalize under the different dynamics and physical constraints of the Unitree H1 and be directly integrated with model-based MPC.
+
+**Research Gap Contribution**
+This paper establishes the following prior art:
+
+> Human locomotion demonstrations can be used to infer a shared objective and generate humanoid locomotion through inverse optimal control.
+
+A preliminary distinction relevant to our project is:
+
+> **Mombaur et al. learn objective parameters within a manually specified cost representation; they do not learn a latent objective representation itself.**
+
+Potential gaps concerning learned objective representations, morphology/dynamics transfer, constraint-aware MPC integration, and generalization remain **Not established yet** and must be evaluated against subsequent IOC, IRL, locomotion, and model-based control literature.
+
