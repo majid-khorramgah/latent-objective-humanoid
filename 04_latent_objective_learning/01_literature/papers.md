@@ -3363,3 +3363,479 @@ rather than:
 It is therefore relevant to the **implementation of Phase 4**, but it does not by itself define the research gap of the overall project.
 
 **Status:** Required
+
+
+## Paper 10 — Mehrdad, Sabbah, Bonnet & Righetti (2026)
+
+**Citation**  
+Mehrdad, S., Sabbah, M., Bonnet, V., & Righetti, L. (2026). *Toward Global Intent Inference for Human Motion by Inverse Reinforcement Learning*. arXiv:2603.07797.
+
+**Literature Category**  
+Inverse Reinforcement Learning (IRL) / Human Motion / Generalizable Objective Learning / Time-Varying Cost Functions
+
+---
+
+### 1. Research Problem
+
+A major question in human-motion modeling is whether a common objective can explain the behavior of different people and different initial configurations.
+
+Many existing approaches estimate subject-specific or posture-specific cost functions.
+
+The paper asks:
+
+> Can a single, unified cost function explain and predict human reaching movements across different subjects and initial postures?
+
+The paper also investigates whether the underlying cost should remain fixed during the movement or vary over time.
+
+---
+
+### 2. Input
+
+The study uses human motion-capture data from 15 right-handed subjects.
+
+Each subject performs a planar pointing/reaching task from five different initial arm postures.
+
+Each subject performs 20 trials for each posture.
+
+The data contain the recorded positions of the shoulder, elbow, and wrist.
+
+A planar 2-DoF biomechanical arm model is constructed using anthropometric parameters.
+
+Therefore:
+
+- Human demonstrations: ✓
+- Multiple subjects: ✓
+- Multiple initial postures: ✓
+- Real human motion: ✓
+- Human reaching: ✓
+- Human locomotion: ✗
+- Whole-body motion: ✗
+- Humanoid locomotion: ✗
+- Unitree H1: ✗
+- Robot morphology transfer: ✗
+
+---
+
+### 3. Method
+
+The paper uses **Minimal Observation Inverse Reinforcement Learning (MO-IRL)**.
+
+The method is extended to estimate **time-varying cost weights**.
+
+Instead of assuming:
+
+    J = constant weighted combination of costs
+
+the method allows the contribution of different candidate costs to change throughout the movement.
+
+Conceptually:
+
+    Start of movement
+          ↓
+    Cost weights W₁
+
+    Middle of movement
+          ↓
+    Cost weights W₂
+
+    End of movement
+          ↓
+    Cost weights W₃
+
+The method also uses both joint positions and velocities during learning.
+
+This provides additional information about movement timing, smoothness, and coordination.
+
+---
+
+### 4. Objective / Cost
+
+The authors use seven predefined candidate cost functions.
+
+The important result is not that all seven costs are equally important.
+
+The inferred cost structure consistently shows:
+
+1. A dominant contribution from joint-acceleration regulation.
+2. A smaller but meaningful contribution from joint torque-change smoothness.
+3. Limited influence from energy-related terms in the tested formulation.
+
+The weights are allowed to vary over time.
+
+Therefore the learned objective is conceptually:
+
+    J(t) =
+        w₁(t) Φ₁
+      + w₂(t) Φ₂
+      + ...
+      + w₇(t) Φ₇
+
+rather than:
+
+    J =
+        w₁ Φ₁
+      + w₂ Φ₂
+      + ...
+      + w₇ Φ₇
+
+with fixed weights.
+
+---
+
+### 5. Validation
+
+Three levels of generality are evaluated:
+
+#### SDPD — Subject-Dependent, Posture-Dependent
+
+A separate cost is estimated for each subject and each initial posture.
+
+#### SDPI — Subject-Dependent, Posture-Independent
+
+One time-varying cost is estimated for each subject across different initial postures.
+
+#### SIPI — Subject-Independent, Posture-Independent
+
+One general time-varying cost is estimated across subjects and initial postures.
+
+The SIPI condition is particularly important for this project because it tests whether a common objective can generalize across people and initial configurations.
+
+The SIPI model reduces average RMSE by approximately 27.65% compared with the baseline in the reported experiment.
+
+---
+
+### 6. Main Finding
+
+The paper provides evidence that a **single subject-independent and posture-independent time-varying cost function** can predict human reaching trajectories with substantially better accuracy than the fixed-weight baseline.
+
+The inferred cost structure consistently highlights joint-acceleration regulation, with an additional contribution from torque-change smoothness.
+
+The authors therefore argue that human reaching may be governed by a shared temporal organization of several movement criteria rather than by a fixed set of subject-specific cost weights.
+
+---
+
+### 7. Simple Interpretation
+
+Imagine 15 people all reaching for the same object.
+
+Their exact trajectories are different.
+
+Instead of learning:
+
+    Person 1 → Cost 1
+    Person 2 → Cost 2
+    Person 3 → Cost 3
+    ...
+
+the method asks whether:
+
+    One general objective
+             ↓
+    Different humans
+             +
+    Different initial postures
+
+can explain their different motions.
+
+The answer in this experiment is largely positive.
+
+The important additional finding is that the objective does not necessarily remain constant during the movement.
+
+For example:
+
+    Beginning:
+    prioritize acceleration regulation
+
+          ↓
+
+    Middle:
+    stronger contribution from torque-change smoothness
+
+          ↓
+
+    End:
+    acceleration regulation becomes important again
+
+This provides a simple example of a **time-varying human objective**.
+
+---
+
+### 8. Limitations
+
+#### 8.1 Reaching rather than locomotion
+
+The task is a planar reaching/pointing task.
+
+The study does not investigate:
+
+- walking,
+- running,
+- balance,
+- foot-ground contact,
+- whole-body locomotion,
+- or humanoid gait.
+
+Therefore, the learned cost structure cannot be assumed to describe human locomotion.
+
+---
+
+#### 8.2 Predefined candidate costs
+
+The method uses seven predefined candidate cost functions.
+
+Therefore:
+
+    Learn weights
+          ≠
+    Discover arbitrary objective representation
+
+The method demonstrates generalization of the selected cost representation, not unrestricted discovery of the complete latent human objective.
+
+---
+
+#### 8.3 Simplified biomechanical model
+
+The human is represented using a planar 2-DoF arm model.
+
+This is substantially simpler than whole-body human locomotion.
+
+---
+
+#### 8.4 No morphology transfer
+
+The paper does not test whether the learned objective remains meaningful when optimized under a different morphology.
+
+There is no:
+
+    Human
+      ↓
+    Learned Objective
+      ↓
+    Different Humanoid
+      ↓
+    New Motion
+
+experiment.
+
+---
+
+#### 8.5 No robot dynamics transfer
+
+The objective is not optimized under the dynamics of a robot such as Unitree H1.
+
+Therefore, the paper does not establish that the learned cost can survive a change in:
+
+- mass distribution,
+- limb lengths,
+- actuator limits,
+- joint limits,
+- contact dynamics,
+- or whole-body dynamics.
+
+---
+
+#### 8.6 No model-based MPC integration
+
+The paper does not demonstrate:
+
+    Learned Human Objective
+             ↓
+        H1 Dynamics
+             +
+        H1 Constraints
+             ↓
+            MPC
+             ↓
+        H1 Behavior
+
+Therefore, the final control pipeline proposed in our project remains outside the scope of this work.
+
+---
+
+#### 8.7 Limited task diversity
+
+The generalization demonstrated is across:
+
+- subjects,
+- and initial arm postures.
+
+It is not demonstrated across fundamentally different tasks or environments.
+
+Therefore:
+
+    Subject generalization
+    +
+    Posture generalization
+
+does not automatically imply:
+
+    Task generalization
+    +
+    Morphology generalization
+    +
+    Dynamics generalization.
+
+---
+
+### 9. Relevance to Our Project
+
+**Relevance: Very High for the conceptual direction of Phase 4.**
+
+This is one of the closest papers to our idea because it explicitly studies whether a **generalizable objective** can be inferred from human demonstrations.
+
+It demonstrates that an objective representation can generalize across different humans and initial configurations.
+
+However, the problem is still fundamentally different from ours:
+
+    Human Reaching
+          ↓
+    Generalizable Cost
+          ↓
+    Predict Human Motion
+
+versus:
+
+    Human Locomotion
+          ↓
+    Generalizable Human Objective
+          ↓
+    Different Humanoid Dynamics
+          ↓
+    Physical Constraints
+          ↓
+    Model-Based MPC
+          ↓
+    H1 Behavior
+
+Therefore, the paper strongly informs our objective-learning methodology but does not solve the final humanoid-transfer problem.
+
+---
+
+### 10. Research Gap Contribution
+
+This paper eliminates an important potential novelty claim:
+
+> "Learning a generalizable human objective across subjects is new."
+
+This is no longer a safe novelty claim.
+
+The paper demonstrates subject-independent and posture-independent objective inference for human reaching.
+
+A potentially more specific research gap remains:
+
+> Whether a generalizable objective can be inferred from human **locomotion** demonstrations and subsequently optimized under substantially different humanoid dynamics and physical constraints.
+
+However:
+
+**This is NOT ESTABLISHED YET.**
+
+The remaining literature must determine whether this complete pipeline, or close variants of it, have already been demonstrated.
+
+---
+
+### 11. Direct Implications for Our Project
+
+#### Rule 1 — Generalization must be defined carefully
+
+"Generalizable objective" can mean different things:
+
+- across subjects,
+- across postures,
+- across tasks,
+- across environments,
+- across morphologies,
+- or across robot dynamics.
+
+The paper demonstrates the first two.
+
+Our project is interested in the much harder question of **dynamics/morphology transfer**.
+
+---
+
+#### Rule 2 — Objective may need to be time-varying
+
+We should not assume from the beginning that:
+
+    J = constant weighted sum of costs.
+
+A time-varying objective is now a literature-supported candidate representation.
+
+However, whether this is useful for locomotion remains unknown.
+
+---
+
+#### Rule 3 — Full state information may be important
+
+The paper shows that using velocity information in addition to position can reduce ambiguity in objective inference.
+
+For our future human-locomotion data, we should therefore consider whether position alone is sufficient.
+
+---
+
+#### Rule 4 — Do not transfer reaching objectives to locomotion
+
+The finding that joint acceleration dominates in this reaching experiment should **not** be used as evidence that acceleration is the dominant objective of human walking.
+
+For locomotion, the relevant objective components must be determined from locomotion literature and experiments.
+
+---
+
+### 12. Position in Our Literature Review
+
+| Question | Mehrdad et al. (2026) |
+|---|---|
+| IRL? | Yes |
+| MO-IRL? | Yes |
+| Human demonstrations? | Yes |
+| Multiple subjects? | Yes |
+| Multiple initial postures? | Yes |
+| Time-varying objective? | Yes |
+| Subject-independent objective? | Yes |
+| Posture-independent objective? | Yes |
+| Candidate costs predefined? | Yes |
+| Objective representation learned from scratch? | No |
+| Human locomotion? | No |
+| Humanoid locomotion? | No |
+| H1 dynamics? | No |
+| Morphology transfer? | No |
+| Dynamics transfer? | No |
+| Physical constraints of a robot? | No |
+| MPC integration? | No |
+| Generalizable human objective? | Yes, for reaching |
+| Generalizable objective across robot morphology/dynamics? | No |
+
+---
+
+### 13. Overall Role in Our Project
+
+**Required — Major IRL / Generalizable Objective Reference**
+
+This paper is one of the most important papers in our literature review because it demonstrates that a subject-independent and posture-independent time-varying cost can be learned from human demonstrations.
+
+However, its scope is human planar reaching.
+
+It therefore provides strong evidence that:
+
+    Human Demonstrations
+          ↓
+    Generalizable Objective
+
+is feasible in at least one human motor-control task.
+
+It does not establish:
+
+    Human Locomotion
+          ↓
+    Generalizable Objective
+          ↓
+    Different Humanoid Dynamics
+          ↓
+    MPC
+          ↓
+    Generalizable Humanoid Behavior
+
+That complete pipeline remains:
+
+**NOT ESTABLISHED YET.**
+
+**Status:** Required
