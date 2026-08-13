@@ -2961,3 +2961,405 @@ Its main contribution is not a new human locomotion objective, but a more effici
 It therefore belongs in our literature review as a **methodological IOC paper** rather than as direct evidence for the final human-locomotion research gap.
 
 **Status:** Required
+
+
+
+
+## Paper 9 — Dahmani et al. (2026)
+
+**Citation**  
+Dahmani, A.-M., Bonnet, V., Daney, D., & Charpillet, F. (2026). *Gradient based Bilevel for Inverse Optimal Control, a Riemannian approach*. arXiv:2606.10841.
+
+**Literature Category**  
+Inverse Optimal Control (IOC) / Riemannian Optimization / Computational Efficiency / Human Motion
+
+---
+
+### 1. Research Problem
+
+Inverse Optimal Control attempts to recover an objective or cost function that explains an observed motion as the solution of an optimal-control problem.
+
+A major difficulty is computational cost.
+
+Classical IOC is often formulated as a bilevel optimization problem:
+
+    Outer Problem:
+    Find objective parameters
+             ↓
+    Inner Problem:
+    Solve optimal control
+             ↓
+    Predicted trajectory
+             ↓
+    Compare with observed trajectory
+             ↓
+    Update objective parameters
+
+The inner optimal-control problem must therefore be repeatedly solved.
+
+This becomes increasingly expensive for realistic robotic and human-motion systems.
+
+The paper investigates whether the geometric structure of IOC can be exploited to obtain a more computationally efficient and numerically stable formulation.
+
+---
+
+### 2. Input
+
+The method takes observed motion trajectories and an optimal-control model with a parameterized cost function.
+
+The experimental evaluation includes real human arm trajectories using a planar two-degree-of-freedom model.
+
+Therefore:
+
+- Human motion demonstrations: ✓
+- Real human motion: ✓
+- IOC: ✓
+- Human arm motion: ✓
+- Locomotion: ✗
+- Bipedal locomotion: ✗
+- Humanoid whole-body dynamics: ✗
+- Unitree H1: ✗
+- Human-to-humanoid transfer: ✗
+
+---
+
+### 3. Method
+
+The paper proposes **Riemannian Inverse Optimal Control (RIOC)**.
+
+The key observation is that trajectories satisfying the optimality conditions of the underlying optimal-control problem form a structured geometric set, described as a manifold.
+
+Instead of treating the IOC problem as an unconstrained numerical search over arbitrary trajectories, the proposed method performs optimization on this manifold.
+
+Conceptually:
+
+    Observed Human Trajectory
+              ↓
+    Project toward the manifold
+    of optimal trajectories
+              ↓
+    Riemannian Optimization
+              ↓
+    Objective Parameters
+
+The manifold formulation preserves feasibility by construction.
+
+The method is therefore intended to combine the advantages of projection-based IOC with gradient-based optimization while avoiding numerical difficulties caused by standard constraint qualifications.
+
+---
+
+### 4. Objective / Cost
+
+The paper does not propose a new universal human objective.
+
+Instead, it considers a parameterized cost representation whose parameters are inferred from motion.
+
+Conceptually:
+
+    J(x,u,θ) = Σ θᵢ φᵢ(x,u)
+
+where:
+
+- φᵢ are candidate objective components,
+- θᵢ are the unknown parameters,
+- and the IOC method estimates θ from observed trajectories.
+
+Therefore:
+
+    Candidate Objective Representation
+                  ↓
+          RIOC estimates parameters
+
+This distinction is important.
+
+The method improves the process of **inferring objective parameters**, but it does not establish that the objective representation itself is the true or complete representation of human behavior.
+
+---
+
+### 5. Validation
+
+The method is evaluated using real human arm trajectories.
+
+A planar two-degree-of-freedom arm model is used to compare RIOC against classical bilevel IOC.
+
+The reported experiments evaluate:
+
+- trajectory reconstruction accuracy,
+- recovered objective parameters,
+- and computation time.
+
+RIOC achieves comparable or slightly better reconstruction accuracy while reducing computation time by approximately a factor of four in the reported experiments.
+
+Reported average reconstruction error was approximately:
+
+    RIOC: 4.2 ± 2.2 degrees
+    Bilevel IOC: 4.4 ± 2.2 degrees
+
+Reported average computation time was approximately:
+
+    RIOC: 26.7 ± 23.9 seconds
+    Bilevel IOC: 100.2 ± 50.5 seconds
+
+These results indicate a substantial computational advantage for the tested problem.
+
+---
+
+### 6. Main Finding
+
+The main finding is:
+
+> The geometric structure of IOC can be exploited to formulate inverse optimal control as optimization on a Riemannian manifold, producing comparable or improved trajectory reconstruction while substantially reducing computation time.
+
+The paper therefore contributes primarily to the **computational scalability and numerical reliability of IOC**.
+
+It does not establish a new human locomotion objective.
+
+---
+
+### 7. Simple Interpretation
+
+Imagine that we want to discover the objective behind a human reaching movement.
+
+Classical IOC repeatedly does:
+
+    Guess objective
+          ↓
+    Solve optimal movement
+          ↓
+    Compare with human
+          ↓
+    Change objective
+          ↓
+    Solve again
+
+RIOC instead recognizes that the valid optimal solutions have a structured geometric form.
+
+It tries to move the observed trajectory toward this set of valid optimal solutions while remaining feasible.
+
+In simple terms:
+
+> Instead of searching everywhere, search intelligently along the structured space of solutions that can actually be optimal.
+
+---
+
+### 8. Limitations
+
+#### 8.1 Human arm rather than locomotion
+
+The experimental validation uses planar human arm trajectories.
+
+The method is therefore not yet demonstrated on:
+
+- human walking,
+- running,
+- bipedal locomotion,
+- whole-body human dynamics,
+- or humanoid locomotion.
+
+---
+
+#### 8.2 Simplified dynamics
+
+The validation uses a 2-DoF planar model.
+
+It does not demonstrate scalability to a full humanoid model with many degrees of freedom and complex contact dynamics.
+
+---
+
+#### 8.3 No human-to-humanoid transfer
+
+The paper does not investigate:
+
+    Human Motion
+          ↓
+    Learned Objective
+          ↓
+    Different Humanoid
+          ↓
+    New Motion
+
+Therefore, morphology and dynamics transfer remain outside the demonstrated scope.
+
+---
+
+#### 8.4 No H1 dynamics
+
+The method is not evaluated using Unitree H1 dynamics.
+
+There is no demonstrated integration with:
+
+- H1 joint limits,
+- torque limits,
+- contact constraints,
+- friction constraints,
+- whole-body dynamics,
+- or H1-specific physical constraints.
+
+---
+
+#### 8.5 No model-based MPC integration
+
+The paper focuses on the inverse-control problem.
+
+It does not demonstrate the complete pipeline:
+
+    Human Demonstrations
+            ↓
+    Learned Human Objective
+            ↓
+    H1 Dynamics + Constraints
+            ↓
+    Model-Based MPC
+            ↓
+    H1 Locomotion
+
+---
+
+#### 8.6 Objective representation remains an assumption
+
+The method improves the efficiency of objective inference, but the objective representation and candidate features remain part of the modeling assumptions.
+
+Therefore:
+
+    Better IOC Solver
+          ≠
+    Discovery of the true human objective
+
+---
+
+#### 8.7 Limited experimental scale
+
+The reported validation is on a small planar human arm problem.
+
+The approximately 4× computational improvement is therefore evidence for the tested setting, not proof that the same speedup will occur for a high-dimensional humanoid locomotion problem.
+
+---
+
+### 9. Relevance to Our Project
+
+**Relevance: High for IOC methodology, moderate for the central research question.**
+
+The paper is important because our project may eventually need to solve an inverse problem from human demonstrations.
+
+If IOC becomes computationally expensive for human locomotion, RIOC provides a potential methodological solution.
+
+However, the paper does not answer our main scientific question:
+
+> What objective underlies human locomotion, and can that objective be transferred to a humanoid with different morphology, dynamics, and constraints?
+
+Instead, it addresses:
+
+> How can IOC be formulated and solved more efficiently and reliably?
+
+Therefore, the paper is primarily a **methodological reference** for Phase 4 rather than direct evidence for our final research gap.
+
+---
+
+### 10. Research Gap Contribution
+
+This paper further reduces the concern that IOC cannot scale because of computational cost.
+
+It demonstrates that a geometric formulation can significantly improve computational efficiency on the tested human-motion problem.
+
+However, the following pipeline remains outside the demonstrated scope:
+
+    Human Locomotion Demonstrations
+              ↓
+       Latent Human Objective
+              ↓
+      Different Morphology
+              ↓
+        H1 Dynamics
+              ↓
+       Physical Constraints
+              ↓
+      Model-Based MPC
+              ↓
+     Generalizable Behavior
+
+Whether this represents a genuine research gap is:
+
+**NOT ESTABLISHED YET.**
+
+---
+
+### 11. Direct Implications for Our Project
+
+#### Rule 1 — IOC scalability must be considered
+
+If Phase 4 eventually uses IOC, computational complexity must be treated as an experimental variable.
+
+---
+
+#### Rule 2 — RIOC is a candidate methodology, not yet our selected method
+
+We should not commit to RIOC before comparing it with:
+
+- classical IOC,
+- single-level IOC,
+- IRL methods,
+- and potentially other objective-learning approaches.
+
+---
+
+#### Rule 3 — Human locomotion remains unvalidated
+
+The reported RIOC experiments concern human arm motion.
+
+Therefore, its performance on human locomotion remains:
+
+**Unknown.**
+
+---
+
+#### Rule 4 — Faster objective inference does not solve objective transfer
+
+RIOC can potentially make objective inference more efficient.
+
+It does not establish that the inferred objective will remain valid when optimized using the dynamics of a different humanoid.
+
+---
+
+### 12. Position in Our Literature Review
+
+| Question | Dahmani et al. (2026) |
+|---|---|
+| IOC? | Yes |
+| Bilevel IOC? | Yes, addressed |
+| Riemannian optimization? | Yes |
+| Computational scalability? | Major contribution |
+| Numerical stability? | Major contribution |
+| Real human motion? | Yes |
+| Human arm motion? | Yes |
+| Human locomotion? | No |
+| Bipedal locomotion? | No |
+| Humanoid dynamics? | No |
+| H1 dynamics? | No |
+| Objective parameter inference? | Yes |
+| Objective representation learned from scratch? | No |
+| Morphology transfer? | No |
+| Dynamics transfer? | No |
+| MPC integration? | No |
+| Generalizable humanoid behavior? | No |
+
+---
+
+### 13. Overall Role in Our Project
+
+**Required — Methodological IOC Reference**
+
+This paper should be included because it represents a very recent development in IOC aimed directly at improving computational scalability.
+
+Its contribution is:
+
+    Better IOC Solver
+          ↓
+    Faster + reliable objective inference
+
+rather than:
+
+    New Human Locomotion Objective
+
+It is therefore relevant to the **implementation of Phase 4**, but it does not by itself define the research gap of the overall project.
+
+**Status:** Required
