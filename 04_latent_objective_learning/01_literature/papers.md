@@ -1514,3 +1514,591 @@ Instead, we need to determine whether there is a scientifically defensible gap i
 - or generalization to unseen conditions.
 
 **Status:** Required
+
+
+
+
+
+
+## Paper 6 — Liu et al. (2022)
+
+**Citation**  
+Liu, W., Zhong, J., Wu, R., Fylstra, B. L., Si, J., & Huang, H. H. (2022). *Inferring Human-Robot Performance Objectives During Locomotion Using Inverse Reinforcement Learning and Inverse Optimal Control*. IEEE Robotics and Automation Letters, 7(2), 2549–2556. DOI: 10.1109/LRA.2022.3143579.
+
+**Literature Category**  
+Inverse Reinforcement Learning (IRL) / Inverse Optimal Control (IOC) / Human-Robot Locomotion / Wearable Robotics / Performance Objective Learning
+
+---
+
+### 1. Research Problem
+
+The paper investigates whether the locomotion performance objective of a **human-robot system** can be inferred from observed walking behavior.
+
+The target application is lower-limb wearable robotics, particularly systems such as robotic prostheses.
+
+The central question is:
+
+> Can observed human-robot walking behavior be used to infer a quantitative performance objective that characterizes how the human-robot system behaves?
+
+The paper approaches this as an inverse problem and evaluates two approaches:
+
+- Inverse Reinforcement Learning (IRL)
+- Inverse Optimal Control (IOC)
+
+The important distinction from conventional control is:
+
+**Forward problem:**
+
+`Objective → Controller → Behavior`
+
+**Inverse problem:**
+
+`Observed Behavior → Objective`
+
+---
+
+### 2. Input
+
+The study uses human-robot locomotion behavior from a robotic lower-limb system.
+
+The experimental component involves human walking with a **robotic transfemoral prosthesis**.
+
+The robot controller is an impedance controller whose parameters influence the behavior of the robotic knee.
+
+The state representation uses gait-related performance errors.
+
+One example defines:
+
+`ΔP = P - Pd`
+
+`ΔD = D - Dd`
+
+where:
+
+- `P` is the measured peak knee angle,
+- `Pd` is the desired peak knee angle,
+- `D` is the measured timing/duration,
+- `Dd` is the desired timing/duration.
+
+Thus the state can be represented as:
+
+`s = [ΔP, ΔD]`
+
+The corresponding control/action variables represent changes to robotic impedance parameters.
+
+Therefore:
+
+- Human behavior: ✓
+- Human locomotion: ✓
+- Human-robot locomotion: ✓
+- Wearable robot: ✓
+- Robotic prosthesis: ✓
+- Full-body humanoid: ✗
+- Independent humanoid robot: ✗
+- H1 dynamics: ✗
+
+---
+
+### 3. Method
+
+The paper formulates the problem using both:
+
+- Inverse Reinforcement Learning (IRL)
+- Inverse Optimal Control (IOC)
+
+The basic pipeline is:
+
+`Human-Robot Walking Behavior`
+  
+`→ State / Feature Representation`
+  
+`→ IRL or IOC`
+  
+`→ Estimated Objective`
+  
+`→ Analysis of Human-Robot System`
+
+The two approaches serve somewhat different purposes.
+
+#### IRL
+
+IRL is used with human-robot behavioral data to infer a cost function that explains the observed behavior.
+
+Conceptually:
+
+`Observed behavior → IRL → Cost`
+
+#### IOC
+
+IOC is used with a modeled human-robot system to infer objective parameters and then analyze control-theoretic properties of the system.
+
+This allows the authors to investigate properties such as:
+
+- stability,
+- robustness,
+- and other system-level control characteristics.
+
+The paper emphasizes that these properties can be difficult to obtain directly from human experiments.
+
+---
+
+### 4. Objective / Cost Representation
+
+The paper uses a **quadratic cost representation**.
+
+The general form is:
+
+`r(s) = s^T H s`
+
+where:
+
+- `s` is the vector of state/performance features,
+- `H` is a weighting matrix,
+- the entries of `H` are unknown objective weights to be inferred.
+
+For the example with:
+
+`s = [ΔP, ΔD]`
+
+the cost can be represented as:
+
+`J = w1 * (ΔP)^2 + w2 * (ΔD)^2`
+
+where:
+
+- `w1` determines the importance of peak error,
+- `w2` determines the importance of duration error.
+
+The important methodological point is:
+
+> The feature representation is specified before learning; the inverse method estimates the relative weighting of those features.
+
+Therefore:
+
+**Learning objective weights ≠ discovering the objective representation from scratch.**
+
+---
+
+### 5. Experimental Design
+
+The human experiments involve walking with a robotic transfemoral prosthesis.
+
+The robotic knee controller is designed around gait-cycle features.
+
+Different behavioral protocols are used to test whether changes in human-robot behavior can be reflected in the inferred performance objective.
+
+The experimental data are then supplied to the IRL procedure.
+
+The authors report that different behavioral protocols result in different inferred performance representations, supporting the feasibility of using inverse learning to characterize human-robot locomotion performance.
+
+---
+
+### 6. Validation
+
+The paper uses two complementary validation components.
+
+#### 6.1 Human-robot experiment
+
+The IRL approach is evaluated using experimentally collected human-robot walking data.
+
+This demonstrates the practical applicability of the inverse approach to a real human-robot locomotion system.
+
+#### 6.2 Simulation / IOC analysis
+
+A simulation study is used to evaluate the IOC formulation.
+
+The IOC analysis allows the researchers to extract system properties such as:
+
+- stability,
+- robustness,
+- and control-theoretic characteristics.
+
+These properties are difficult to directly infer from human experiments alone.
+
+Therefore, the paper demonstrates both:
+
+`Human-robot behavior → IRL → inferred objective`
+
+and:
+
+`Modeled human-robot system → IOC → objective/system properties`
+
+---
+
+### 7. Main Finding
+
+The main finding is:
+
+> Human-robot locomotion performance objectives can be inferred from observed behavior using inverse learning methods.
+
+Both IRL and IOC are shown to be feasible for the proposed inverse formulation.
+
+The experimental IRL results demonstrate that the method can be applied to real human-robot walking behavior.
+
+The IOC analysis demonstrates that an inferred objective can also be used to investigate system-level properties such as stability and robustness.
+
+The paper therefore provides a concrete example of:
+
+`Human-Robot Locomotion Demonstrations`
+
+`→ Inferred Performance Objective`
+
+rather than simply reproducing observed trajectories.
+
+---
+
+### 8. Important Interpretation
+
+The inferred objective should not automatically be interpreted as the **true biological objective** of the human.
+
+The method identifies an objective representation that explains the observed behavior under the selected system model and feature representation.
+
+Therefore:
+
+`Observed Behavior → Estimated Objective`
+
+does not necessarily imply:
+
+`Estimated Objective = True Internal Human Objective`
+
+Different objective formulations may potentially explain similar behavior.
+
+This objective-identifiability issue remains important for our project.
+
+---
+
+### 9. Limitations
+
+#### 9.1 Predefined feature representation
+
+The objective is represented using predefined features and a quadratic form.
+
+For example:
+
+`J = w1 * (Peak Error)^2 + w2 * (Duration Error)^2`
+
+The inverse method learns the weights but does not discover the relevant features from raw motion.
+
+Therefore:
+
+**Parameter learning ≠ representation discovery**
+
+This is directly relevant to our project.
+
+---
+
+#### 9.2 Wearable robot rather than independent humanoid
+
+The robot is a lower-limb wearable system / robotic prosthesis.
+
+The robot physically participates in the human's locomotion rather than acting as an independent humanoid with its own complete morphology and locomotion dynamics.
+
+Therefore, the paper does not establish transfer from:
+
+`Human Objective → Independent Humanoid`
+
+---
+
+#### 9.3 No full-body humanoid dynamics
+
+The study does not optimize a full humanoid model containing:
+
+- whole-body joint dynamics,
+- foot-ground contacts,
+- whole-body momentum,
+- contact forces,
+- actuator limits,
+- joint torque limits,
+- friction constraints,
+- or humanoid-specific balance constraints.
+
+Therefore it does not address H1's full physical constraints.
+
+---
+
+#### 9.4 No morphology transfer
+
+The inferred objective is not demonstrated under substantially different robot morphology.
+
+There is no experiment of:
+
+`Human behavior → inferred objective → different humanoid morphology`
+
+Therefore, transfer across morphology remains unaddressed.
+
+---
+
+#### 9.5 No H1 model-based MPC
+
+The paper does not demonstrate:
+
+`Learned human objective`
+
+`+ H1 dynamics`
+
+`+ H1 constraints`
+
+`→ whole-body MPC`
+
+This is outside the scope of the study.
+
+---
+
+#### 9.6 Limited objective representation
+
+The quadratic feature representation is useful for tractability and interpretation, but it constrains what the inverse method can learn.
+
+If the real behavior depends on features not included in the representation, the inverse method cannot discover them.
+
+Therefore, the method cannot establish that the selected feature set is complete.
+
+---
+
+#### 9.7 Objective depends on the human-robot system
+
+The paper focuses on a **collective human-robot performance objective**.
+
+Therefore, the inferred objective may reflect interaction between the human and the specific wearable robotic system.
+
+This is different from learning a morphology-independent objective belonging only to the human.
+
+This distinction is important for our project.
+
+---
+
+#### 9.8 Generalization across robot dynamics
+
+The paper does not establish that the inferred objective remains valid when the robot dynamics change substantially.
+
+There is no demonstrated transfer across:
+
+- different humanoid morphologies,
+- different whole-body dynamics,
+- different contact models,
+- or different actuator constraints.
+
+---
+
+### 10. Relevance to Our Project
+
+**Relevance: High, but conceptually different from our target problem.**
+
+This paper is important because it demonstrates that inverse methods can infer a quantitative locomotion performance objective from **human-robot behavior**.
+
+It also demonstrates the useful combination of:
+
+`Inverse Learning + Model-Based Control Analysis`
+
+However, the robot is a wearable lower-limb device rather than an independent humanoid.
+
+Therefore, the paper does not solve our target problem:
+
+`Human Demonstrations`
+
+`→ Human Objective`
+
+`→ H1 Dynamics`
+
+`→ H1 Physical Constraints`
+
+`→ Model-Based MPC`
+
+---
+
+### 11. Research Gap Contribution
+
+This paper rules out another overly broad novelty claim.
+
+The following is **not sufficient novelty**:
+
+> "We infer a locomotion objective from human-robot walking behavior using IRL or IOC."
+
+That has already been demonstrated.
+
+The paper also shows that inverse learning can produce an objective useful for analyzing stability and robustness of a modeled human-robot system.
+
+Therefore, simply claiming:
+
+- objective learning,
+- IRL,
+- IOC,
+- quadratic cost learning,
+- or human-robot locomotion objective inference
+
+is not enough.
+
+Potentially relevant distinctions for our project remain:
+
+1. Learning a more generalizable objective representation.
+2. Separating human objective from robot morphology and dynamics.
+3. Transferring a learned objective from human behavior to an independent humanoid.
+4. Optimizing the learned objective under different robot dynamics.
+5. Enforcing humanoid-specific physical constraints.
+6. Using the learned objective directly inside whole-body model-based MPC.
+7. Evaluating generalization under unseen robot dynamics, tasks, or disturbances.
+
+However:
+
+> **Whether any of these constitutes a genuine research gap is NOT ESTABLISHED YET.**
+
+They remain candidate directions until the remaining IOC, IRL, human-locomotion-objective, and model-based-control literature has been reviewed.
+
+---
+
+### 12. Direct Implications for Our Project
+
+#### Rule 1 — Human-robot objective inference is already prior art
+
+We cannot claim novelty simply because we infer a locomotion objective from human-robot behavior.
+
+This has already been demonstrated using both IRL and IOC.
+
+---
+
+#### Rule 2 — Do not confuse human objective with human-robot objective
+
+Liu et al. study a **collective human-robot performance objective**.
+
+Our project is currently interested in:
+
+`Human demonstrations → latent human objective`
+
+before applying that objective to H1.
+
+Therefore, the distinction between:
+
+`Human objective`
+
+and:
+
+`Human-robot system objective`
+
+must remain explicit.
+
+---
+
+#### Rule 3 — Representation remains a key question
+
+The paper uses a predefined quadratic feature representation.
+
+Therefore, it does not establish that the correct objective representation for human locomotion is known.
+
+This supports keeping the objective representation as an **open research question** in Phase 4.
+
+---
+
+#### Rule 4 — Model-based analysis is relevant
+
+The IOC component shows that an inferred objective can be connected to model-based analysis of stability and robustness.
+
+This is conceptually relevant to the later transition:
+
+`Learned Objective → Model-Based Control`
+
+but the paper does not perform the H1/MPC transfer we are targeting.
+
+---
+
+### 13. Position in Our Literature Review
+
+| Question | Liu et al. (2022) |
+|---|---|
+| Human demonstrations used? | Yes |
+| Human locomotion? | Yes |
+| Human-robot locomotion? | Yes |
+| IRL used? | Yes |
+| IOC used? | Yes |
+| Objective inferred from behavior? | Yes |
+| Quadratic objective? | Yes |
+| Objective features predefined? | Yes |
+| Objective representation learned from scratch? | No |
+| Human-only objective? | No |
+| Human-robot collective objective? | Yes |
+| Wearable robot? | Yes |
+| Robotic prosthesis? | Yes |
+| Independent humanoid? | No |
+| Full-body humanoid dynamics? | No |
+| H1 dynamics? | No |
+| H1 constraints? | No |
+| Whole-body MPC? | No |
+| Morphology transfer? | No |
+| Generalization across robot dynamics? | No |
+| Stability/robustness analysis? | Yes |
+| Objective transfer to a different robot? | No |
+
+---
+
+### 14. Comparison With Previous Papers
+
+The current literature progression is:
+
+**Mombaur et al. (2010)**
+
+`Human locomotion → IOC → predefined locomotion cost → humanoid-oriented trajectory generation`
+
+**Berret et al. (2011)**
+
+`Human arm motion → IOC → composite cost → evidence for multiple criteria`
+
+**Maroger et al. (2022)**
+
+`Human locomotion → IOC → predefined locomotion cost → human-like trajectory generation`
+
+**Liu et al. (2022)**
+
+`Human + wearable robot → IRL / IOC → human-robot performance objective → stability/robustness analysis`
+
+Therefore, the literature has already established that inverse methods can infer objectives from both:
+
+- human movement,
+- and human-robot locomotion behavior.
+
+The remaining question for our project is not simply:
+
+> Can we infer an objective?
+
+but potentially:
+
+> Can an objective inferred from human demonstrations be represented and validated in a way that remains useful when optimized by a different humanoid with different dynamics and physical constraints?
+
+**This remains a candidate research direction, not an established research gap.**
+
+---
+
+### 15. Overall Role in Our Project
+
+**Important prior-art paper.**
+
+Liu et al. (2022) is important because it extends objective inference beyond purely human motion to **human-robot locomotion** and demonstrates both IRL- and IOC-based approaches.
+
+Its most important consequence for our project is that it further narrows the novelty space.
+
+We cannot claim novelty based only on:
+
+- learning locomotion objectives,
+- using IRL,
+- using IOC,
+- learning quadratic cost weights,
+- or inferring objectives from human-robot locomotion.
+
+The potentially more distinctive problem is the transition from:
+
+`Human Demonstrations`
+
+to:
+
+`Generalizable Objective`
+
+to:
+
+`Independent Humanoid Dynamics + Constraints`
+
+to:
+
+`Model-Based MPC`
+
+But:
+
+> **Not Established Yet.**
+
+**Status:** Required
