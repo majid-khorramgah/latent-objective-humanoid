@@ -73,58 +73,97 @@ Therefore, this work provides the theoretical motivation for investigating Inver
 
 
 
-### Mombaur, Truong & Laumond (2010)
+## Paper 2 — Mombaur, Truong & Laumond (2010)
 
-**Citation**
-Mombaur, K., Truong, A., & Laumond, J.-P. (2010). *From Human to Humanoid Locomotion—An Inverse Optimal Control Approach*. Autonomous Robots, 28(3), 369–383. DOI: 10.1007/s10514-009-9170-7.
+### Citation
 
-**Research Problem**
-Infer an underlying locomotion objective from observed human motion and use the inferred objective to generate humanoid locomotion, rather than directly reproducing human trajectories.
+Mombaur, K., Truong, A., & Laumond, J.-P. (2010).
 
-**Input**
-Human motion-capture demonstrations of planar locomotion toward different target configurations. The motion representation focuses on the global position and orientation of the body rather than full-body joint trajectories.
+From Human to Humanoid Locomotion—An Inverse Optimal Control Approach.
 
-**Method**
-The authors formulate an inverse optimal control problem in which the locomotion cost is represented as a weighted combination of manually selected basis functions. The weights are inferred by repeatedly solving a forward optimal control problem and comparing the resulting trajectory with human demonstrations.
+Autonomous Robots, 28, 369–383.
 
-**Objective / Cost**
-The final objective combines:
+DOI: 10.1007/s10514-009-9170-7
+
+### Research Problem
+
+The paper addresses how human locomotion behavior can be transferred to humanoid robots without directly reproducing the observed human trajectories.
+
+The authors investigate whether an underlying locomotion objective can be inferred from human motion and subsequently used to generate new motions for a humanoid robot.
+
+### Input
+
+The framework uses human motion-capture demonstrations of locomotion toward different target configurations.
+
+The motion representation focuses on the global position and orientation of the human body rather than full-body joint trajectories.
+
+### Method
+
+The authors formulate the problem as Inverse Optimal Control.
+
+The human locomotion cost is represented as a weighted combination of manually selected cost functions. The weights of these cost functions are inferred by repeatedly solving a forward optimal control problem and comparing the resulting trajectories with the observed human demonstrations.
+
+The inferred objective is then used to generate new locomotion trajectories for different target configurations.
+
+### Objective / Cost
+
+The objective is represented using several manually selected components, including:
 
 * locomotion time,
-* squared forward acceleration,
-* squared rotational acceleration,
-* squared orthogonal acceleration,
-* alignment between body orientation and the direction toward the target.
+* forward acceleration,
+* rotational acceleration,
+* orthogonal acceleration,
+* body orientation alignment with the direction toward the target.
 
-The objective representation is manually specified; IOC learns the corresponding weights rather than discovering the objective representation itself.
+The objective representation is defined in advance. The IOC procedure learns the relative importance of these components rather than discovering the objective representation itself.
 
-**Validation**
-The objective is learned from multiple human demonstrations across different target scenarios and evaluated on additional held-out scenarios. The learned objective is able to reproduce characteristic human locomotion paths and generalize to unseen target configurations. The approach is also demonstrated in a human-to-humanoid transfer setting.
+### Main Finding
 
-**Main Finding**
-A shared locomotion objective can explain multiple human locomotion demonstrations and can be optimized to generate new trajectories rather than directly imitating observed trajectories.
+A shared locomotion objective can explain multiple human locomotion demonstrations and can be used to generate new trajectories for previously unseen target configurations.
 
-**Limitation**
+The work demonstrates that human locomotion can be modeled through an underlying optimization criterion rather than being treated only as a trajectory to reproduce.
 
-* The objective basis functions are manually designed rather than learned.
-* The locomotion model is simplified and does not capture full-body humanoid dynamics or contact-rich whole-body behavior.
-* The inferred objective is task-specific and does not establish a general latent representation of human objectives.
-* Transfer to humanoid motion relies on additional robot-specific motion-generation mechanisms.
-* Robustness to disturbances, changes in dynamics, and substantially different robot constraints is not systematically studied.
-* Objective identifiability remains limited because different cost formulations may produce similar observed trajectories.
+The inferred objective can also be used as part of a human-to-humanoid locomotion transfer pipeline.
 
-**Relevance to Our Project**
-**Very High.** This work is a direct predecessor of the Human Demonstrations → Objective Inference → Humanoid Motion pipeline proposed in our project. It establishes that human locomotion objectives can be inferred through IOC and subsequently used for motion generation.
+### Limitation
 
-However, it also shows that **Human → IOC → Humanoid** alone is not a sufficient novelty claim. Our project must investigate whether a richer or learned objective representation can generalize under the different dynamics and physical constraints of the Unitree H1 and be directly integrated with model-based MPC.
+The objective representation is manually designed rather than learned from the demonstrations.
 
-**Research Gap Contribution**
-This paper establishes the following prior art:
+The locomotion model is simplified and does not represent full-body humanoid dynamics, contact interactions, or whole-body balance constraints.
 
-> Human locomotion demonstrations can be used to infer a shared objective and generate humanoid locomotion through inverse optimal control.
+The approach is demonstrated for a relatively specific locomotion task and does not establish a general latent representation of human objectives.
 
-A preliminary distinction relevant to our project is:
+The work also does not systematically investigate robustness to disturbances, changes in robot dynamics, or substantially different physical constraints.
 
-> **Mombaur et al. learn objective parameters within a manually specified cost representation; they do not learn a latent objective representation itself.**
+### Relevance to Our Project
 
-Potential gaps concerning learned objective representations, morphology/dynamics transfer, constraint-aware MPC integration, and generalization remain **Not established yet** and must be evaluated against subsequent IOC, IRL, locomotion, and model-based control literature.
+This paper is highly relevant to our research because it demonstrates a pipeline closely related to our proposed approach:
+
+Human Motion Demonstrations
+→ Infer Underlying Objective / Cost
+→ Model-Based Optimization
+→ Humanoid Motion
+
+Importantly, it shows that Human → IOC → Humanoid is not by itself a novel research direction.
+
+Our project therefore needs to investigate whether a learned objective representation can provide advantages beyond manually specified cost functions, particularly when the learned objective is optimized under the different dynamics and physical constraints of the Unitree H1.
+
+### Research Gap Contribution
+
+The paper establishes that an underlying human locomotion objective can be inferred from demonstrations and subsequently used for humanoid motion generation.
+
+However, the objective representation itself is manually specified and only its parameters are inferred.
+
+This leaves an important distinction for our research:
+
+Manually Designed Objective Representation
+→ Learn Objective Parameters
+
+versus the direction investigated in our project:
+
+Human Motion
+→ Learn Latent Objective Representation
+→ Optimize under H1 Dynamics and Constraints
+
+Whether this distinction represents a genuine research gap is **Not established yet** and must be evaluated against subsequent Inverse Optimal Control, Inverse Reinforcement Learning, human locomotion, and model-based control literature.
+
