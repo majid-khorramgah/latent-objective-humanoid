@@ -170,7 +170,7 @@ Whether this distinction represents a genuine research gap is **Not established 
 
 
 
-## Berret et al. (2011)
+### Paper 3 — Berret et al. (2011)
 
 **Citation**
 Berret, B., Chiovetto, E., Nori, F., & Pozzo, T. (2011). *Evidence for Composite Cost Functions in Arm Movement Planning: An Inverse Optimal Control Approach*. PLoS Computational Biology, 7(10), e1002183.
