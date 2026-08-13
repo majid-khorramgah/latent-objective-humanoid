@@ -528,7 +528,7 @@ This question is more important for our project than simply collecting additiona
 
 **Status:** **Required**
 
-## Paper 3 — Clever & Mombaur (2016); Clever, Hu & Mombaur (2018)
+## Paper 4 — Clever & Mombaur (2016); Clever, Hu & Mombaur (2018)
 
 **Primary References**
 
