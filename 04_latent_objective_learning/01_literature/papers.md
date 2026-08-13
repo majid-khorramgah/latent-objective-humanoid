@@ -2102,3 +2102,498 @@ But:
 > **Not Established Yet.**
 
 **Status:** Required
+
+
+
+
+
+## Paper 7 — Wu et al. (2023 / ICRA 2024)
+
+**Citation**  
+Wu, F., Gu, Z., Wu, H., Wu, A., & Zhao, Y. (2023). *Infer and Adapt: Bipedal Locomotion Reward Learning from Demonstrations via Inverse Reinforcement Learning*. arXiv:2309.16074. Published in IEEE International Conference on Robotics and Automation (ICRA), 2024, pp. 16243–16250.
+
+**Literature Category**  
+Inverse Reinforcement Learning (IRL) / Bipedal Locomotion / Reward Learning / Learning from Demonstrations / Generalization
+
+---
+
+### 1. Research Problem
+
+The paper investigates whether a bipedal robot can learn locomotion behavior from expert demonstrations by first inferring the underlying reward function rather than directly imitating the expert policy.
+
+The motivation is that imitation learning learns how the expert behaves, while inverse reinforcement learning attempts to learn what objective may have produced that behavior.
+
+The central idea is:
+
+`Expert Demonstrations`
+
+`→ Inverse Reinforcement Learning`
+
+`→ Learned Reward Function`
+
+`→ Robot Policy Learning`
+
+The paper focuses on bipedal locomotion over complex and uneven terrains.
+
+---
+
+### 2. Input
+
+The input consists of expert demonstrations of bipedal locomotion.
+
+The demonstrations contain locomotion behavior that can be used by the inverse reinforcement learning algorithm to infer a reward function.
+
+The learned reward is then used to train a locomotion policy.
+
+Therefore:
+
+- Expert demonstrations: ✓
+- Bipedal locomotion: ✓
+- Locomotion reward learning: ✓
+- IRL: ✓
+- Human motion demonstrations: Not necessarily
+- Full human biomechanical demonstrations: No
+- H1-specific human transfer: No
+- Whole-body humanoid MPC: No
+
+An important distinction is that the paper addresses **expert bipedal locomotion demonstrations**, not the specific problem of recovering a human's internal biological objective from human motion.
+
+---
+
+### 3. Method
+
+The paper applies inverse reinforcement learning to bipedal locomotion.
+
+The conceptual pipeline is:
+
+`Expert Demonstrations`
+
+`↓`
+
+`Inverse Reinforcement Learning`
+
+`↓`
+
+`Learned Reward Function`
+
+`↓`
+
+`Reinforcement Learning`
+
+`↓`
+
+`Bipedal Locomotion Policy`
+
+The key idea is to avoid directly reproducing the demonstrated trajectory or policy.
+
+Instead, the method attempts to recover a reward function that explains the demonstrated behavior.
+
+The paper investigates IRL methods using nonlinear function approximation for learning the expert reward.
+
+---
+
+### 4. Objective / Reward
+
+Unlike approaches that simply assign manually designed weights to a small set of predefined costs, this work uses nonlinear function approximation to represent the learned reward.
+
+Conceptually:
+
+`State`
+
+`↓`
+
+`Nonlinear Reward Function`
+
+`↓`
+
+`Reward`
+
+The reward function is then analyzed to understand which locomotion-related behaviors are encoded in the learned reward.
+
+This allows the researchers to investigate the structure of the learned reward and extract insights about the expert locomotion strategy.
+
+However, the learned reward should not automatically be interpreted as the true internal objective of the expert.
+
+It is an inferred reward that explains the observed behavior under the selected IRL formulation and representation.
+
+---
+
+### 5. Validation
+
+The learned reward functions are evaluated by training bipedal locomotion policies using the inferred rewards.
+
+The resulting policies are tested on terrains that were not present in the demonstrations.
+
+The paper reports that policies trained using inferred rewards demonstrate improved walking performance on unseen terrains.
+
+This is an important result because it suggests that learning the underlying reward can provide better adaptability than simply reproducing the demonstrated behavior.
+
+The key experimental idea is:
+
+`Training / Demonstration Terrains`
+
+`↓`
+
+`Learn Reward`
+
+`↓`
+
+`Train Locomotion Policy`
+
+`↓`
+
+`Test on Unseen Terrains`
+
+---
+
+### 6. Main Finding
+
+The main finding is:
+
+> Inverse reinforcement learning can be used to infer reward functions from bipedal locomotion demonstrations, and policies trained with the inferred rewards can improve adaptability to unseen terrains.
+
+The paper therefore provides evidence that learning a reward/objective rather than directly imitating behavior can help with locomotion generalization.
+
+The learned reward also provides an interpretable object that can be analyzed to understand aspects of the expert's locomotion strategy.
+
+---
+
+### 7. Important Interpretation
+
+The important conceptual contribution is the separation between:
+
+`Demonstrated Behavior`
+
+and:
+
+`Underlying Reward`
+
+Instead of learning:
+
+`Demonstration → Copy the motion`
+
+the paper investigates:
+
+`Demonstration → Infer Reward → Learn New Behavior`
+
+This is highly relevant to our project because our project also aims to avoid direct trajectory imitation.
+
+However, the paper does not establish that the learned reward is a universal human locomotion objective.
+
+It establishes that an inferred reward can be useful for learning and generalizing bipedal locomotion behavior.
+
+---
+
+### 8. Limitations
+
+#### 8.1 Not a direct human-objective study
+
+The paper focuses on expert bipedal locomotion demonstrations.
+
+Therefore, it does not directly establish that the learned reward represents a biological or cognitive human locomotion objective.
+
+This distinction is important for our project, which specifically starts from human demonstrations.
+
+---
+
+#### 8.2 Reward identifiability
+
+Different reward functions can potentially produce similar behavior.
+
+Therefore:
+
+`Observed Behavior → One Unique True Reward`
+
+cannot automatically be assumed.
+
+The learned reward should be interpreted as an objective that explains the demonstrated behavior under the chosen model and learning framework.
+
+---
+
+#### 8.3 Dependence on reward representation
+
+Although nonlinear function approximation provides more flexibility than a simple weighted sum of manually selected features, the learned reward is still constrained by the chosen model, state representation, and IRL formulation.
+
+Therefore, the paper does not establish that the learned reward is the unique or complete representation of the expert's locomotion objective.
+
+---
+
+#### 8.4 No human-to-humanoid morphology transfer
+
+The paper does not demonstrate:
+
+`Human`
+
+`↓`
+
+`Learned Human Objective`
+
+`↓`
+
+`Different Humanoid Morphology`
+
+There is no direct transfer of a human objective to the Unitree H1.
+
+---
+
+#### 8.5 No model-based MPC integration
+
+The learned reward is used to train locomotion policies through reinforcement learning.
+
+The paper does not demonstrate the specific pipeline:
+
+`Learned Human Objective`
+
+`+ H1 Dynamics`
+
+`+ H1 Constraints`
+
+`→ Model-Based MPC`
+
+Therefore, the model-based control component proposed in our project remains outside the scope of this work.
+
+---
+
+#### 8.6 No explicit dynamics-transfer study
+
+Although the learned reward improves performance on unseen terrains, this is not the same as transferring the objective across substantially different robot dynamics.
+
+Terrain generalization:
+
+`Same Robot + New Terrain`
+
+is different from dynamics/morphology generalization:
+
+`Human → Different Robot`
+
+This distinction is critical for our project.
+
+---
+
+### 9. Relevance to Our Project
+
+**Relevance: Very High.**
+
+This is one of the most directly relevant papers in our current literature review because it combines:
+
+- demonstrations,
+- inverse reinforcement learning,
+- bipedal locomotion,
+- learned reward functions,
+- and generalization to unseen environments.
+
+It provides strong prior art for the idea:
+
+`Demonstrations → Learned Locomotion Reward → New Behavior`
+
+Therefore, our project cannot claim novelty simply from learning a locomotion reward from demonstrations.
+
+However, the paper does not perform the complete target pipeline of our project:
+
+`Human Demonstrations`
+
+`→ Human Objective`
+
+`→ Different Humanoid Dynamics`
+
+`→ H1 Constraints`
+
+`→ Model-Based MPC`
+
+This distinction remains potentially important.
+
+---
+
+### 10. Research Gap Contribution
+
+This paper eliminates another broad novelty claim:
+
+> "We learn a locomotion reward from demonstrations and use it to improve generalization."
+
+This has already been demonstrated.
+
+It also shows that reward learning can provide useful generalization to unseen terrains.
+
+Therefore, the novelty of our project should not simply be:
+
+- applying IRL to locomotion,
+- learning a reward from demonstrations,
+- or testing on unseen terrain.
+
+Potentially more distinctive directions include:
+
+1. Learning an objective specifically from human locomotion.
+2. Separating the human objective from the dynamics and morphology of the demonstrator.
+3. Transferring the learned objective to a different humanoid morphology.
+4. Optimizing the learned objective under the target robot's own dynamics.
+5. Explicitly enforcing humanoid physical constraints.
+6. Using the learned objective inside model-based MPC rather than only policy learning.
+7. Evaluating generalization across dynamics, morphology, and physical constraints rather than only terrain.
+
+However:
+
+> **Whether these differences constitute a genuine research gap is NOT ESTABLISHED YET.**
+
+Further literature review is required.
+
+---
+
+### 11. Direct Implications for Our Project
+
+#### Rule 1 — Reward learning from demonstrations is established
+
+We cannot claim:
+
+`Demonstrations → IRL → Locomotion Reward`
+
+as the primary novelty.
+
+---
+
+#### Rule 2 — Generalization to unseen terrain is also established
+
+Testing whether a learned reward improves performance on unseen terrain is valuable, but it is not sufficient novelty by itself.
+
+---
+
+#### Rule 3 — Human objective remains a different question
+
+The paper demonstrates learning an expert locomotion reward.
+
+It does not establish that this reward is the underlying human objective.
+
+Therefore our project must distinguish:
+
+`Expert locomotion reward`
+
+from:
+
+`Latent human objective`
+
+---
+
+#### Rule 4 — Dynamics transfer remains important
+
+The paper demonstrates environment/terrain generalization.
+
+Our project is interested in a harder form of generalization:
+
+`Human dynamics`
+
+`→`
+
+`H1 dynamics`
+
+This is not the same problem.
+
+---
+
+#### Rule 5 — Model-based control remains a major distinction
+
+The paper primarily uses the learned reward to train locomotion policies.
+
+Our project aims to use the learned objective with:
+
+`H1 Dynamics + Physical Constraints + MPC`
+
+This difference is directly connected to the model-based direction suggested by Dennis Hong.
+
+---
+
+### 12. Position in Our Literature Review
+
+| Question | Wu et al. (2023/2024) |
+|---|---|
+| Demonstrations used? | Yes |
+| Bipedal locomotion? | Yes |
+| IRL used? | Yes |
+| Reward learned from demonstrations? | Yes |
+| Nonlinear reward representation? | Yes |
+| Reward analyzed? | Yes |
+| Human demonstrations specifically? | Not established as the central setting |
+| Human biological objective? | No |
+| Predefined simple weighted cost only? | No |
+| Generalization to unseen terrain? | Yes |
+| Different robot morphology? | No |
+| Human → humanoid transfer? | No |
+| H1 dynamics? | No |
+| H1 physical constraints? | No |
+| Model-based MPC? | No |
+| Whole-body MPC? | No |
+| Objective transfer across dynamics? | No |
+| Direct trajectory imitation? | No; reward learning is used instead |
+| Learned reward used for new behavior? | Yes |
+
+---
+
+### 13. Comparison With Previous Papers
+
+The literature progression is now:
+
+**Berret et al. (2011)**
+
+`Human arm motion → IOC → composite cost`
+
+**Maroger et al. (2022)**
+
+`Human locomotion → IOC → predefined locomotion cost`
+
+**Liu et al. (2022)**
+
+`Human + wearable robot → IRL/IOC → human-robot performance objective`
+
+**Wu et al. (2023/2024)**
+
+`Bipedal demonstrations → IRL → nonlinear learned reward → policy learning → unseen-terrain generalization`
+
+This progression is important because the literature increasingly approaches our target idea.
+
+The key remaining distinction is potentially:
+
+`Human Demonstration`
+
+`→ Latent Human Objective`
+
+`→ Transfer across morphology/dynamics`
+
+`→ Model-Based H1 Control`
+
+However:
+
+> **Research gap: NOT ESTABLISHED YET.**
+
+---
+
+### 14. Overall Role in Our Project
+
+**Required — Very High Relevance**
+
+This paper is a major prior-art reference for Phase 4 because it demonstrates that:
+
+> Learning a locomotion reward from demonstrations can be more useful for generalization than directly reproducing demonstrated behavior.
+
+It also demonstrates that the learned reward can be analyzed to obtain insight into locomotion strategies.
+
+Most importantly, it prevents us from claiming novelty for:
+
+`IRL + bipedal locomotion + demonstrations + unseen terrain`
+
+as a standalone contribution.
+
+Our potential contribution must therefore be more specific, particularly around:
+
+`Human Objective`
+
+`+`
+
+`Different Robot Dynamics / Morphology`
+
+`+`
+
+`Model-Based MPC`
+
+`+`
+
+`Physical Constraints`
+
+**Status:** Required
