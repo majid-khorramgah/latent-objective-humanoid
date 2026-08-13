@@ -2597,3 +2597,367 @@ Our potential contribution must therefore be more specific, particularly around:
 `Physical Constraints`
 
 **Status:** Required
+
+
+
+
+## Paper 8 — Bečanović, Jovanović & Bonnet (2024 / 2025)
+
+**Citation**  
+Bečanović, F., Jovanović, K., & Bonnet, V. (2024). *Reliability of Single-Level Equality-Constrained Inverse Optimal Control*. IEEE-RAS 23rd International Conference on Humanoid Robots (Humanoids), pp. 623–630. arXiv preprint: arXiv:2510.08406, 2025.
+
+**Literature Category**  
+Inverse Optimal Control (IOC) / Computational Efficiency / Robustness / Optimal Control / Human Motion
+
+---
+
+### 1. Research Problem
+
+A major computational difficulty in Inverse Optimal Control is that the classical IOC formulation is naturally a bilevel optimization problem.
+
+The inner problem solves the optimal-control problem associated with a candidate human objective.
+
+The outer problem changes the objective parameters so that the resulting optimal trajectory matches the observed human motion.
+
+Conceptually:
+
+    Candidate Objective
+          ↓
+    Optimal Control
+          ↓
+    Predicted Motion
+          ↓
+    Compare with Human Motion
+          ↓
+    Update Objective
+          ↓
+    Repeat
+
+This can be computationally expensive because the optimal-control problem must be solved repeatedly.
+
+The paper investigates whether IOC can instead be reformulated as a **single-level optimization problem** that is both computationally efficient and robust to noisy motion data.
+
+---
+
+### 2. Input
+
+The input is a modeled motion-generation problem together with observed motion data.
+
+The experiments use a human-like planar reaching task with a 2-DoF model.
+
+The observed trajectories are corrupted with different levels of noise to evaluate the robustness of the IOC method.
+
+Therefore:
+
+- Motion demonstrations: ✓
+- Human-like motion: ✓
+- IOC: ✓
+- Noise robustness: ✓
+- Human locomotion: ✗
+- Whole-body humanoid: ✗
+- H1: ✗
+- Morphology transfer: ✗
+
+---
+
+### 3. Method
+
+The classical bilevel IOC problem is reformulated into a **single-level optimization problem**.
+
+The basic idea is to replace the repeated inner optimal-control solve with constraints related to the optimality conditions of the underlying control problem.
+
+Conceptually:
+
+**Classical IOC**
+
+    Outer optimization
+          ↓
+    Inner optimal control
+          ↓
+    Predicted trajectory
+
+**Proposed approach**
+
+    Single optimization problem
+          ↓
+    Optimality conditions
+          +
+    Motion matching
+          ↓
+    Objective parameters
+
+The purpose is to obtain the same or equivalent behavioral parameters without repeatedly solving the complete inner optimal-control problem.
+
+---
+
+### 4. Objective / Cost
+
+The paper does not propose a new universal human objective.
+
+Instead, it assumes an objective represented using candidate basis functions:
+
+    J = Σ θᵢ φᵢ
+
+where:
+
+- φᵢ represents a candidate objective component.
+- θᵢ represents its behavioral weight.
+
+The IOC method estimates the parameters θ from observed motion.
+
+Therefore:
+
+    Predefined Objective Representation
+              ↓
+         Learn Parameters
+
+This is important for our project.
+
+The paper improves **how efficiently the parameters can be inferred**, but it does not solve the broader problem of discovering an entirely unknown objective representation.
+
+---
+
+### 5. Validation
+
+The method is evaluated using a simulated 2-DoF planar reaching problem.
+
+The experiments introduce different levels of noise into the observed trajectories and compare the proposed single-level IOC formulation with a classical bilevel IOC formulation.
+
+The paper reports that the proposed method remains robust to substantial noise and reduces computation time by approximately a factor of 15 compared with the classical bilevel implementation for the tested task.
+
+---
+
+### 6. Main Finding
+
+The main finding is:
+
+> A carefully formulated single-level IOC problem can provide substantially better computational efficiency than classical bilevel IOC while maintaining robustness to noisy motion observations.
+
+This is important because IOC can otherwise become computationally expensive when the underlying motion-generation problem must be solved repeatedly.
+
+---
+
+### 7. Simple Interpretation
+
+Suppose we want to discover whether a human values:
+
+    70% smoothness
+    30% effort
+
+A classical IOC method may repeatedly do:
+
+    Guess weights
+        ↓
+    Solve optimal control
+        ↓
+    Compare with human
+        ↓
+    Change weights
+        ↓
+    Solve again
+
+The proposed method reformulates the problem so that the optimization can be solved more directly.
+
+Therefore, the contribution is primarily:
+
+    Faster / more robust IOC
+
+rather than:
+
+    Discovery of a new human objective.
+
+---
+
+### 8. Limitations
+
+#### 8.1 Equality constraints
+
+The proposed formulation is developed for equality-constrained optimal-control models.
+
+Inequality constraints such as control limits and path constraints are not handled in the main formulation because they introduce additional mathematical difficulties.
+
+This is important for humanoid robotics because realistic humanoid control contains many inequality constraints.
+
+---
+
+#### 8.2 Simplified motion model
+
+The validation uses a 2-DoF planar reaching model.
+
+It does not demonstrate the method on:
+
+- whole-body human locomotion,
+- humanoid walking,
+- foot-ground contact,
+- whole-body dynamics,
+- humanoid torque limits,
+- friction constraints,
+- or Unitree H1 dynamics.
+
+---
+
+#### 8.3 No morphology transfer
+
+The paper does not investigate:
+
+    Human Motion
+          ↓
+    Learned Objective
+          ↓
+    Different Humanoid
+
+Therefore, it does not address whether an inferred objective can remain meaningful when optimized under different robot morphology and dynamics.
+
+---
+
+#### 8.4 No model-based humanoid MPC
+
+The learned behavioral parameters are not demonstrated as the objective of a whole-body humanoid MPC system.
+
+Therefore, the complete pipeline:
+
+    Human Objective
+          +
+    H1 Dynamics
+          +
+    H1 Constraints
+          ↓
+         MPC
+
+is not established by this work.
+
+---
+
+#### 8.5 Objective representation remains predefined
+
+The method estimates parameters of candidate objective functions.
+
+It does not establish that the true underlying human objective can be uniquely discovered from arbitrary motion data.
+
+Therefore:
+
+    Efficient parameter inference
+          ≠
+    Complete discovery of human objective
+
+---
+
+#### 8.6 Validation is simulation-based
+
+The primary validation is performed on a simulated planar reaching problem rather than a full real-world human locomotion dataset.
+
+Therefore, robustness on the tested reaching task should not automatically be generalized to humanoid locomotion.
+
+---
+
+### 9. Relevance to Our Project
+
+**Relevance: High for methodology, moderate for the research question.**
+
+The paper is relevant because our project must eventually solve an IOC/IRL-type inverse problem from human demonstrations.
+
+A computationally efficient IOC formulation could be useful during Phase 4.
+
+However, the paper does not answer our central scientific question:
+
+> What objective underlies human locomotion, and can that objective transfer to a humanoid with different dynamics and constraints?
+
+Instead, it addresses:
+
+> How can a particular IOC problem be solved more efficiently and robustly?
+
+Therefore, this paper should influence our **method selection**, but should not define our research question.
+
+---
+
+### 10. Research Gap Contribution
+
+This paper eliminates another possible assumption:
+
+> "IOC is inherently too computationally expensive to be useful."
+
+The results show that suitable single-level formulations can significantly reduce computational cost.
+
+However, it does not eliminate the broader research gap potentially relevant to our project.
+
+The following remains unresolved by this paper:
+
+    Human locomotion
+          ↓
+    Generalizable objective
+          ↓
+    Different humanoid dynamics
+          ↓
+    Physical constraints
+          ↓
+    Model-based MPC
+
+Whether this constitutes a genuine research gap is:
+
+**NOT ESTABLISHED YET.**
+
+---
+
+### 11. Direct Implications for Our Project
+
+#### Rule 1 — Computational efficiency matters
+
+If IOC is used for our human-motion dataset, the computational cost of the inverse problem must be considered from the beginning.
+
+---
+
+#### Rule 2 — Do not assume single-level IOC automatically solves H1
+
+The proposed method has not been demonstrated for the full constrained dynamics of a humanoid such as H1.
+
+---
+
+#### Rule 3 — Separate objective learning from objective representation
+
+The method can efficiently estimate parameters of a chosen objective representation.
+
+This does not mean that it discovers the correct objective representation automatically.
+
+---
+
+#### Rule 4 — Constraints are a major unresolved issue for our target system
+
+The H1 control problem contains important inequality constraints.
+
+Therefore, if our final system uses IOC for objective learning and MPC for control, the compatibility between the learned objective, IOC formulation, and constrained H1 dynamics must be explicitly investigated.
+
+---
+
+### 12. Position in Our Literature Review
+
+| Question | Bečanović et al. |
+|---|---|
+| IOC? | Yes |
+| Human-like motion? | Yes |
+| Single-level IOC? | Yes |
+| Computational efficiency? | Major contribution |
+| Noise robustness? | Major contribution |
+| Objective parameters inferred? | Yes |
+| Objective representation discovered from scratch? | No |
+| Human locomotion? | No |
+| Bipedal locomotion? | No |
+| Humanoid dynamics? | No |
+| H1 dynamics? | No |
+| Morphology transfer? | No |
+| Inequality-constrained humanoid control? | No |
+| MPC integration? | No |
+| Generalization across morphology/dynamics? | No |
+
+---
+
+### 13. Overall Role in Our Project
+
+**Required — Methodological Reference**
+
+This paper is important for understanding how the IOC component of our project could potentially be made computationally practical.
+
+Its main contribution is not a new human locomotion objective, but a more efficient and noise-robust way to solve a class of IOC problems.
+
+It therefore belongs in our literature review as a **methodological IOC paper** rather than as direct evidence for the final human-locomotion research gap.
+
+**Status:** Required
