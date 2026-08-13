@@ -169,7 +169,6 @@ Whether this distinction represents a genuine research gap is **Not established 
 
 
 
-
 ## Paper 3 — Berret et al. (2011)
 
 **Citation**
@@ -188,6 +187,8 @@ The central question is:
 
 > Can the underlying objective of human movement be inferred from observed trajectories, and is this objective better represented as a combination of multiple costs?
 
+In simple terms, the authors ask whether humans are optimizing only one thing during movement, such as minimizing energy, or whether several criteria influence the selected motion simultaneously.
+
 This is important for our project because it provides evidence that human behavior may arise from **multiple simultaneously optimized criteria** rather than one simple objective.
 
 **Important scope distinction:** the study concerns human **arm reaching**, not locomotion.
@@ -198,7 +199,7 @@ This is important for our project because it provides evidence that human behavi
 
 The input consists of observed human arm-reaching movements.
 
-Participants perform reaching movements toward specified targets, and the resulting kinematic trajectories are used to infer the movement criterion.
+Participants perform reaching movements toward specified targets, and the resulting kinematic trajectories are used to evaluate which candidate movement objectives best explain the observed behavior.
 
 The modeled system is a simplified planar two-joint human arm rather than a whole-body humanoid.
 
@@ -209,6 +210,7 @@ Therefore:
 * Arm reaching: ✓
 * Locomotion: ✗
 * Whole-body humanoid dynamics: ✗
+* Foot-ground contact: ✗
 * Robot morphology transfer: ✗
 
 ---
@@ -217,29 +219,29 @@ Therefore:
 
 The paper uses **Inverse Optimal Control (IOC)**.
 
+A simple way to understand IOC is to compare it with ordinary optimal control.
+
 In ordinary optimal control:
 
-> Given an objective, determine the motion that minimizes that objective.
+**Objective → Motion**
 
-Conceptually:
+We know what we want the system to optimize, and we calculate the motion that best satisfies that objective.
 
-[
-\text{Objective} \rightarrow \text{Motion}
-]
+IOC reverses the direction:
 
-IOC reverses this direction:
+**Observed Motion → Objective**
 
-[
-\text{Observed Motion} \rightarrow \text{Objective}
-]
+We observe how a human actually moved and ask:
 
-The researchers observe how humans move and ask:
+> What objective could make this observed movement approximately optimal?
 
-> What combination of candidate movement costs would make the observed human trajectory approximately optimal?
+The researchers define several candidate movement costs in advance. They then use IOC to determine which combination of these candidate costs can best explain the observed human trajectories.
 
-Several candidate cost functions are predefined. IOC then estimates their relative contributions by comparing motions generated under the candidate objective with experimentally observed human movements.
+Therefore, the method is primarily:
 
-The important point is that the method **learns the weights of predefined objective components** rather than discovering an entirely new objective representation from raw motion.
+**Human motion → candidate costs → learned cost weights → reconstructed motion**
+
+The important point is that the method **learns the contribution/weights of predefined objective components** rather than discovering an entirely new objective representation from raw motion.
 
 ---
 
@@ -254,67 +256,55 @@ The study evaluates several candidate criteria related to human arm movement, in
 
 The main result is that a **composite cost** explains the observed movements better than individual criteria alone.
 
-The most successful formulation combines:
+The most successful formulation combines criteria related to:
 
-[
-\text{Mechanical Effort}
-+
-\text{Joint-Level Smoothness}
-]
-
-More specifically, the reported composite objective combines a measure based on the absolute work of joint torques with a measure based on integrated squared joint acceleration.
+* **mechanical effort**, and
+* **joint-level smoothness**.
 
 Conceptually:
 
-[
-J =
-w_E J_{\text{effort}}
-+
-w_S J_{\text{smoothness}}
-]
+`J = w_E * J_effort + w_S * J_smoothness`
 
-where (w_E) and (w_S) determine how strongly each criterion contributes to the overall objective.
+where:
+
+* `J_effort` represents the effort-related component,
+* `J_smoothness` represents the smoothness-related component,
+* `w_E` and `w_S` determine their relative contribution.
+
+More specifically, the reported successful formulation combines a measure based on the absolute work of joint torques with a measure based on integrated squared joint acceleration.
 
 ### Interpretation
 
-A simple example:
+Consider two possible movements to the same target:
 
-Suppose a person can reach a target using:
+* Movement A uses relatively little effort but contains abrupt changes in acceleration.
+* Movement B is very smooth but requires more effort.
 
-* a very energy-efficient but jerky movement, or
-* a very smooth but energetically expensive movement.
+If human movements tend to lie between these extremes, a composite objective can explain this behavior:
 
-If humans consistently choose something between these extremes, a composite objective can explain this behavior:
-
-> The human is not optimizing only energy or only smoothness; both appear to influence the selected motion.
+> The human is not optimizing only effort or only smoothness; both criteria can contribute to the selected movement.
 
 This is the key conceptual contribution relevant to our project.
+
+**Important:** this does **not** mean that effort and smoothness are established as the objectives of human locomotion. The evidence in this paper is for the studied arm-reaching task.
 
 ---
 
 ### 5. Validation
 
-The candidate objectives are evaluated by comparing trajectories generated by optimizing different cost formulations with experimentally observed human reaching trajectories.
+The candidate objectives are evaluated by comparing trajectories generated under different cost formulations with experimentally observed human reaching trajectories.
 
-The study finds that a combination of effort and smoothness-related terms reproduces important characteristics of human arm trajectories better than individual criteria alone.
+The study finds that a combination of effort- and smoothness-related terms reproduces important characteristics of human arm trajectories better than individual criteria alone.
 
-Thus, the paper provides experimental evidence that:
+Therefore, within the studied task, the paper provides evidence that:
 
-[
-\text{Human Motion}
-\not\approx
-\text{single criterion optimization}
-]
+**Human Motion ≠ optimization of only one candidate criterion**
 
 and that:
 
-[
-\text{Human Motion}
-\approx
-\text{optimization of a composite objective}
-]
+**Human Motion ≈ optimization of a composite objective**
 
-within the studied arm-reaching task.
+The important conclusion is not that one particular objective has been proven to be the universal human objective, but that **a combination of multiple criteria can provide a better explanation of observed behavior**.
 
 ---
 
@@ -328,7 +318,7 @@ This supports the broader hypothesis that human behavior may emerge from simulta
 
 However, the finding is **task-specific**.
 
-It establishes composite objectives for the studied arm-reaching behavior; it does **not** establish that human locomotion necessarily optimizes the same criteria.
+It establishes evidence for a composite objective in the studied arm-reaching behavior. It does **not** establish that human locomotion necessarily optimizes the same criteria.
 
 ---
 
@@ -336,11 +326,11 @@ It establishes composite objectives for the studied arm-reaching behavior; it do
 
 #### 7.1 Task limitation
 
-The experiments concern arm reaching rather than locomotion.
+The experiments concern **arm reaching**, not locomotion.
 
 Therefore, the results cannot directly establish that human walking or running optimizes mechanical effort and smoothness in the same way.
 
-**Implication for our project:** candidate locomotion objectives must still be determined experimentally.
+**Implication for our project:** candidate locomotion objectives must still be determined from locomotion-specific literature and experiments.
 
 ---
 
@@ -348,19 +338,21 @@ Therefore, the results cannot directly establish that human walking or running o
 
 The candidate objective components are specified before learning.
 
-The method primarily estimates the contribution/weight of candidate costs.
+The method primarily estimates the contribution or weight of these candidate costs.
 
 Therefore:
 
-[
-\text{Learning objective weights}
-\neq
-\text{Learning the objective representation itself}
-]
+**Learning objective weights ≠ learning the objective representation itself**
 
-This is an important distinction for our project.
+This distinction is important for our project.
 
-Our project is interested in whether a more general or latent objective representation can be learned from human demonstrations rather than assuming all relevant objective components in advance.
+If we define:
+
+`J = w_1 * φ_1 + w_2 * φ_2 + ...`
+
+and only learn the `w_i`, then we have learned the parameters of a predefined objective representation.
+
+We have not necessarily discovered what the relevant objective features `φ_i` should be.
 
 ---
 
@@ -368,14 +360,14 @@ Our project is interested in whether a more general or latent objective represen
 
 The modeled system is a simplified human arm rather than a full humanoid.
 
-It does not address:
+The study does not address:
 
-* whole-body dynamics,
+* whole-body humanoid dynamics,
 * legged locomotion,
 * foot-ground contact,
-* balance constraints,
+* whole-body balance,
 * humanoid actuation limits,
-* whole-body torque limits,
+* whole-body torque constraints,
 * or robot-specific physical constraints.
 
 ---
@@ -384,50 +376,40 @@ It does not address:
 
 The paper does not investigate whether an inferred human objective remains meaningful when optimized under substantially different dynamics or morphology.
 
-There is no:
+There is no demonstrated:
 
-[
-\text{Human dynamics}
-\rightarrow
-\text{different humanoid dynamics}
-]
+**Human dynamics → different humanoid dynamics**
 
 transfer problem.
 
-This is important because our target system is the Unitree H1, whose dynamics, actuation, contacts, and constraints differ substantially from those of a human.
+This is important for our project because the target system is the Unitree H1, whose morphology, dynamics, actuation limits, contacts, and physical constraints differ from those of a human.
 
 ---
 
 #### 7.5 No model-based humanoid control
 
-The learned objective is not demonstrated as the central cost of a modern whole-body humanoid MPC operating under realistic robot dynamics and constraints.
+The learned objective is not demonstrated as the central cost of a whole-body humanoid MPC operating under realistic robot dynamics and physical constraints.
 
-Therefore, the paper does not establish:
+Therefore, the paper does not establish the pipeline:
 
-[
-\text{Learned Human Objective}
-+
-\text{H1 Dynamics}
-+
-\text{H1 Constraints}
-\rightarrow
-\text{MPC}
-]
+**Learned Human Objective + H1 Dynamics + H1 Constraints → MPC**
+
+This remains a separate problem for our project.
 
 ---
 
-#### 7.6 Generalization
+#### 7.6 Limited generalization scope
 
-The study primarily evaluates the ability of the candidate cost formulations to explain the studied arm-reaching behavior.
+The study evaluates how well candidate cost formulations explain the studied human arm-reaching behavior.
 
-It does not establish generalization of an inferred objective across:
+It does not establish generalization of the inferred objective across:
 
 * different robot morphologies,
-* different dynamics,
-* substantially different tasks,
-* disturbances,
+* substantially different dynamics,
+* locomotion tasks,
 * contact conditions,
-* or unseen locomotion environments.
+* external disturbances,
+* or unseen humanoid environments.
 
 ---
 
@@ -437,15 +419,17 @@ It does not establish generalization of an inferred objective across:
 
 This paper is important for the conceptual foundation of Phase 4 because it demonstrates that the underlying objective of human movement may be **composite**.
 
-It supports considering multiple candidate objective components instead of assuming that human movement is governed by one simple criterion.
+It supports the idea that we should consider multiple candidate objective components rather than assume that human behavior is governed by one simple criterion.
 
-However, the paper does **not** justify assuming that the objective of human locomotion consists of effort + smoothness.
+However, this paper does **not** justify assuming that human locomotion has an objective such as:
+
+`effort + smoothness`
 
 For our project:
 
-> **Effort, smoothness, stability, energy, robustness, task success, etc. must remain candidate hypotheses until supported by locomotion literature and experiments.**
+> **Effort, smoothness, stability, energy, robustness, task success, etc. must remain candidate hypotheses until supported by locomotion-specific literature and experiments.**
 
-The paper is therefore relevant to **objective representation and learning**, but not sufficient evidence for the final H1 locomotion objective.
+The paper is therefore highly relevant to **objective representation and IOC**, but it is not direct evidence for the final H1 locomotion objective.
 
 ---
 
@@ -453,84 +437,70 @@ The paper is therefore relevant to **objective representation and learning**, bu
 
 This paper establishes an important prior-art result:
 
-> Human movement objectives can be inferred from demonstrations using IOC, and a composite objective can explain observed behavior better than individual candidate criteria.
+> Human movement objectives can be investigated from demonstrations using IOC, and a composite objective can explain observed behavior better than individual candidate criteria.
 
-Combined with Mombaur et al. (2010), the literature already establishes:
+Combined with Mombaur et al. (2010), the literature already establishes the following general approach:
 
-[
-\text{Human Motion}
-\rightarrow
-\text{IOC}
-\rightarrow
-\text{Weighted Candidate Objectives}
-]
+**Human Motion → IOC → Weighted Candidate Objectives**
 
 Therefore, the following are **not sufficient novelty claims** for our project:
 
 * using human demonstrations,
 * applying IOC,
 * learning weights of multiple hand-designed costs,
-* or claiming that human behavior can be represented by a composite objective.
+* or showing that human behavior can be represented by a composite objective.
 
-A potentially relevant distinction is that these works rely on **predefined objective components**, whereas our project is investigating whether a more generalizable objective representation can be learned and subsequently optimized under a different robot's dynamics and constraints.
+A potentially relevant distinction is that these approaches rely on **predefined objective components**, whereas our project is investigating whether a more generalizable objective representation can be learned and subsequently optimized under a different robot's dynamics and physical constraints.
 
 However:
 
 > **Whether this distinction constitutes a genuine research gap is NOT ESTABLISHED YET.**
 
-It must be checked against subsequent IOC and IRL literature.
+This must be checked against subsequent IOC and IRL literature before being used as a novelty claim.
 
 ---
 
 ### 10. Direct Implications for Our Project
 
-This paper gives us three concrete rules for the remainder of Phase 4.1:
+This paper gives us three concrete rules for the remainder of Phase 4.1.
 
-**Rule 1 — Do not assume the objective structure.**
+#### Rule 1 — Do not assume the objective structure
 
-We should not begin with:
+We should not begin with an objective such as:
 
-[
-J =
-w_1J_{\text{stability}}
-+
-w_2J_{\text{energy}}
-+
-w_3J_{\text{robustness}}
-+
-w_4J_{\text{task}}
-]
+`J = w_1 * J_stability + w_2 * J_energy + w_3 * J_robustness + w_4 * J_task`
 
-as if these were known facts.
+as if these components were already established.
 
-They are only candidate hypotheses.
+At this stage, they are only **candidate hypotheses**.
+
+The literature and experiments must determine which components are actually supported.
 
 ---
 
-**Rule 2 — Distinguish representation learning from weight learning.**
+#### Rule 2 — Distinguish representation learning from weight learning
 
 A method that starts with:
 
-[
-J =
-\sum_i w_i\phi_i
-]
+`J = Σ w_i * φ_i`
 
-and only learns (w_i) has learned the **parameters of a predefined representation**.
+and only learns `w_i` has learned the **parameters of a predefined representation**.
 
-It has not necessarily discovered the underlying representation itself.
+It has not necessarily discovered the underlying objective representation itself.
 
 This distinction must remain explicit throughout Phase 4.
 
 ---
 
-**Rule 3 — Locomotion evidence is required.**
+#### Rule 3 — Locomotion evidence is required
 
-Because Berret et al. study arm movement, their results cannot be directly transferred to human locomotion.
+Because Berret et al. study arm movement, their findings cannot be directly transferred to human locomotion.
 
-Therefore, the next relevant literature must determine:
+Therefore, the next literature must answer:
 
-> Which objective structures have actually been supported for human locomotion?
+> Which objective structures have actually been supported by experiments on human locomotion?
+
+This question is more important for our project than simply collecting additional IOC papers.
 
 ---
 
@@ -554,7 +524,6 @@ Therefore, the next relevant literature must determine:
 | Direct evidence for locomotion objective?      | No                    |
 
 **Overall role in our project:**
-**Important conceptual IOC paper for composite objectives, but not direct evidence for humanoid locomotion.**
+**Important conceptual IOC paper for composite objectives, but not direct evidence for human locomotion or humanoid control.**
 
 **Status:** **Required**
-
