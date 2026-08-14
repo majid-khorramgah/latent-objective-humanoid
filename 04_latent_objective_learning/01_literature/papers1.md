@@ -1757,3 +1757,766 @@ not:
 
 **Reason:**  
 This paper is necessary for understanding how modern IRL can learn nonlinear reward functions and for preventing us from incorrectly claiming novelty for simply using a neural network to learn an objective.
+
+
+
+
+
+
+## Paper 14 — Veerkamp et al. (2021)
+
+**Citation**  
+Veerkamp, K., Waterval, N. F. J., Geijtenbeek, T., Carty, C. P., Lloyd, D. G., Harlaar, J., & van der Krogt, M. M. (2021). *Evaluating Cost Function Criteria in Predicting Healthy Gait*. Journal of Biomechanics, 123, 110530. DOI: 10.1016/j.jbiomech.2021.110530.
+
+**Literature Category**  
+Human Motion / Human Locomotion Objectives / Computational Biomechanics / Predictive Simulation / Composite Cost Functions
+
+---
+
+### 1. Research Problem
+
+The paper investigates a fundamental question in computational models of human walking:
+
+> What objective or cost function can best explain healthy human gait?
+
+Predictive simulations of human gait require an optimization objective. However, it is not known exactly which criteria humans optimize when walking.
+
+The authors therefore investigate several physiologically motivated candidate criteria and ask:
+
+> Which criteria, individually or in combination, can produce a gait that resembles experimentally observed healthy human walking?
+
+This is directly relevant to our project because our project also needs to determine what objective may underlie human locomotion.
+
+However, there is an important difference:
+
+Veerkamp et al. test predefined candidate costs in a forward simulation.
+
+Our project aims to infer an objective from human demonstrations and eventually use it on a different humanoid robot.
+
+---
+
+### 2. Input
+
+The study uses:
+
+- Experimental data describing healthy human gait
+- A generic planar musculoskeletal model
+- 18 Hill-type muscles
+- A parameterized reflex-based controller
+- Several candidate physiological cost functions
+
+The candidate criteria include:
+
+1. Cost of transport
+2. Muscle activity
+3. Head stability
+4. Foot-ground impact
+5. Knee ligament use / knee hyperextension
+
+The simulation is then optimized using these criteria.
+
+Therefore:
+
+- Human locomotion: Yes
+- Healthy gait: Yes
+- Human experimental data: Yes
+- Forward dynamic simulation: Yes
+- Musculoskeletal model: Yes
+- IOC: No
+- IRL: No
+- Humanoid robot: No
+- H1: No
+- MPC on a robot: No
+
+---
+
+### 3. Method
+
+The paper follows a forward-optimization approach.
+
+The basic procedure is:
+
+    Candidate Cost
+          ↓
+    Optimize Human Model
+          ↓
+    Predicted Gait
+          ↓
+    Compare with Experimental Human Gait
+
+First, each candidate criterion is optimized separately.
+
+For example:
+
+    Minimize Energy
+          ↓
+    Predicted gait
+
+or:
+
+    Minimize Muscle Activity
+          ↓
+    Predicted gait
+
+or:
+
+    Minimize Head Motion
+          ↓
+    Predicted gait
+
+The predicted gait is then compared with experimentally observed healthy gait.
+
+After evaluating the individual criteria, the authors construct a combined cost function with weighted criteria.
+
+Conceptually:
+
+    J =
+        w1 * Cost_of_Transport
+        +
+        w2 * Muscle_Activity
+        +
+        w3 * Head_Stability
+        +
+        w4 * Foot_Ground_Impact
+        +
+        w5 * Knee_Extension
+
+The weights are optimized to improve agreement between simulated and experimental gait.
+
+---
+
+### 4. Simple Interpretation
+
+Imagine we want to understand why a human walks the way they do.
+
+We propose several possible reasons:
+
+    Human may want to:
+
+    - use less energy
+    - activate muscles less
+    - keep the head stable
+    - reduce impact when the foot hits the ground
+    - avoid stressing the knee
+
+Now suppose we tell a simulated human:
+
+    "Only minimize energy."
+
+It produces one walking pattern.
+
+Then:
+
+    "Only minimize muscle activity."
+
+It produces another walking pattern.
+
+Then:
+
+    "Only minimize head movement."
+
+It produces another walking pattern.
+
+The question is:
+
+> Which one looks most like real human walking?
+
+The paper finds that no single criterion is sufficient to reproduce all aspects of healthy gait well.
+
+A carefully weighted combination performs substantially better.
+
+---
+
+### 5. Objective / Cost
+
+The paper evaluates five candidate criteria:
+
+#### 5.1 Cost of Transport
+
+This represents the energetic cost associated with moving the body over a distance.
+
+Conceptually:
+
+    Lower energy per distance
+            ↓
+       Better gait
+
+---
+
+#### 5.2 Muscle Activity
+
+This criterion penalizes high muscle activation.
+
+Conceptually:
+
+    Less muscle activation
+            ↓
+       Lower cost
+
+This can be interpreted as a possible strategy for reducing muscular effort or fatigue.
+
+---
+
+#### 5.3 Head Stability
+
+This criterion penalizes excessive movement of the head.
+
+Conceptually:
+
+    More stable head
+            ↓
+       Lower cost
+
+This is motivated by the sensory role of head motion during walking.
+
+---
+
+#### 5.4 Foot-Ground Impact
+
+This criterion penalizes impact associated with the foot contacting the ground.
+
+Conceptually:
+
+    Smaller impact
+            ↓
+       Lower cost
+
+This represents a possible preference to reduce mechanical loading during foot-ground contact.
+
+---
+
+#### 5.5 Knee Ligament Use / Knee Hyperextension
+
+This criterion penalizes excessive knee extension/hyperextension and associated ligament loading.
+
+Conceptually:
+
+    Avoid extreme knee configuration
+            ↓
+       Lower cost
+
+---
+
+### 6. Individual Criteria vs. Combined Cost
+
+A major result is that the individual criteria explain different aspects of human gait.
+
+When each criterion is optimized independently, the agreement with experimental gait is limited.
+
+The reported overall coefficients of determination for the individual criteria were approximately:
+
+    R² = 0.37 – 0.56
+
+with RMSE values of approximately:
+
+    3.47 – 4.63 SD
+
+The authors then construct an optimally weighted combined cost.
+
+The combined objective achieves approximately:
+
+    R² = 0.72
+
+with:
+
+    RMSE = 2.10 SD
+
+The combined cost therefore provides substantially better agreement with experimental healthy gait within the studied simulation framework. The authors conclude that careful weighting of multiple criteria is important for predicting healthy gait. 
+
+---
+
+### 7. Main Finding
+
+The central finding is:
+
+> No single tested physiological criterion was sufficient to reproduce all characteristics of healthy human gait, while a carefully weighted combination of criteria produced substantially better agreement with experimental gait.
+
+This provides evidence that human locomotion may be influenced by multiple competing or complementary objectives.
+
+However, this should NOT be interpreted as proof that the human brain literally optimizes exactly these five criteria.
+
+The paper demonstrates that this combination is useful for explaining/synthesizing gait within the chosen simulation framework.
+
+---
+
+### 8. Important Limitation: This Is Not IOC
+
+This distinction is critical for our project.
+
+Veerkamp et al. do NOT start with:
+
+    Human Demonstration
+          ↓
+    Infer Objective
+
+Instead, they start with:
+
+    Candidate Objective
+          ↓
+    Forward Simulation
+          ↓
+    Generate Gait
+          ↓
+    Compare with Human Gait
+
+Therefore:
+
+    Forward Optimization:
+
+    Objective → Motion
+
+whereas our target direction is:
+
+    Objective Inference:
+
+    Motion → Objective
+
+This is the fundamental difference between this work and our planned IOC/IRL approach.
+
+---
+
+### 9. Important Limitation: Candidate Objectives Are Predefined
+
+The authors choose the candidate criteria beforehand.
+
+They do not ask:
+
+> Can an unknown objective representation be discovered directly from human demonstrations?
+
+Instead, they ask:
+
+> Which of these physiologically motivated criteria, and what combination of their weights, best predicts healthy gait?
+
+Therefore:
+
+    Learning weights
+          ≠
+    Discovering the objective representation
+
+This distinction is important for our project.
+
+---
+
+### 10. What the Paper Tells Us About Candidate Human Objectives
+
+This paper is especially useful because it provides locomotion-specific evidence for several candidate objective components.
+
+Before this paper, we might have simply guessed:
+
+    Energy
+    Stability
+    Smoothness
+    Robustness
+    Task success
+
+After this paper, we have stronger literature support that several physiologically motivated criteria have actually been investigated in human gait modeling.
+
+In particular:
+
+- energetic cost,
+- muscle activity,
+- head stability,
+- foot-ground impact,
+- knee loading / hyperextension
+
+have all been explicitly tested as possible contributors to healthy gait.
+
+However:
+
+> These should still be treated as candidate hypotheses, not established ground-truth components of the human objective.
+
+---
+
+### 11. Important Limitation: Healthy Gait Only
+
+The study focuses on healthy gait.
+
+It does not investigate whether the same objective remains valid under:
+
+- perturbations,
+- uneven terrain,
+- obstacles,
+- stairs,
+- different walking speeds,
+- running,
+- carrying objects,
+- external disturbances,
+- or different tasks.
+
+Therefore, the study does not establish that the identified weighted cost is a universal human locomotion objective.
+
+---
+
+### 12. Important Limitation: Human Model, Not Robot
+
+The model is a generic planar musculoskeletal human model.
+
+It does not represent:
+
+- Unitree H1,
+- humanoid robot actuators,
+- robot torque limits,
+- robot contact constraints,
+- robot morphology,
+- robot whole-body dynamics,
+- robot control architecture.
+
+Therefore, the paper does not address:
+
+    Human Objective
+          ↓
+    Different Robot Dynamics
+          ↓
+    Robot Motion
+
+This is a central part of our project.
+
+---
+
+### 13. No Human-to-Robot Transfer
+
+The paper does not investigate whether the inferred/selected cost can be transferred from a human to a robot with different morphology.
+
+There is no:
+
+    Human
+      ↓
+    Objective
+      ↓
+    H1
+
+transfer experiment.
+
+Therefore, the embodiment-transfer question remains open in this paper.
+
+---
+
+### 14. No Learned Latent Objective
+
+The combined cost is still constructed from explicitly defined candidate criteria.
+
+Conceptually:
+
+    Human-designed criteria
+              ↓
+       Optimize weights
+              ↓
+       Combined objective
+
+Our desired direction is:
+
+    Human demonstrations
+              ↓
+       Infer objective
+              ↓
+       Objective representation
+              ↓
+       Optimize on H1
+
+Therefore, Veerkamp et al. provides evidence for the importance of composite objectives, but does not solve latent objective inference.
+
+---
+
+### 15. Relevance to Our Project
+
+**Relevance: Very High**
+
+This is one of the most directly relevant papers in the Human Motion / Locomotion Objectives category.
+
+The reason is simple:
+
+It directly studies:
+
+    Human locomotion
+          +
+    Cost functions
+          +
+    Optimization
+          +
+    Healthy gait prediction
+
+It therefore helps answer an important preliminary question:
+
+> Are there scientifically motivated candidate objectives that can explain human locomotion?
+
+The answer is clearly yes.
+
+However, it does not answer our final question:
+
+> Can the underlying objective be inferred from human demonstrations and then optimized by a humanoid with different dynamics and constraints?
+
+---
+
+### 16. Research Gap Contribution
+
+This paper means that the following would NOT be a sufficient novelty claim:
+
+> "We use a combination of multiple cost functions for human locomotion."
+
+That has already been investigated.
+
+Similarly, this is not sufficient:
+
+> "Human locomotion can be explained better by a weighted combination of several objectives."
+
+Veerkamp et al. provide direct evidence for this within their simulation framework.
+
+Therefore, our novelty cannot simply be:
+
+    Composite Human Locomotion Cost
+
+A potentially more interesting distinction is:
+
+    Existing work:
+
+    Predefined locomotion costs
+              ↓
+       Optimize weights
+              ↓
+       Reproduce human gait
+
+
+    Our target:
+
+    Human demonstrations
+              ↓
+       Infer objective
+              ↓
+       Learn objective representation
+              ↓
+       Transfer to H1
+              ↓
+       H1 dynamics + constraints
+              ↓
+             MPC
+
+Whether this constitutes a genuine research gap is:
+
+**NOT ESTABLISHED YET**
+
+It must be tested against the remaining IOC, IRL, humanoid, and model-based-control literature.
+
+---
+
+### 17. Implications for Our Objective Representation
+
+This paper gives us an important design consideration for Phase 4.
+
+There are at least two possible directions:
+
+#### Direction A — Explicit composite objective
+
+    J =
+        w1 * Energy
+        +
+        w2 * Muscle Cost
+        +
+        w3 * Stability
+        + ...
+
+Advantages:
+
+- interpretable
+- physically meaningful
+- easier to analyze
+- easier to transfer into MPC
+
+Disadvantage:
+
+- requires us to choose the candidate components beforehand
+
+---
+
+#### Direction B — More general learned objective
+
+    Human Motion
+          ↓
+    Learned Representation
+          ↓
+    Objective / Cost
+
+Advantages:
+
+- potentially captures nonlinear interactions
+- does not require all objective components to be specified beforehand
+
+Disadvantages:
+
+- potentially less interpretable
+- harder to verify
+- may overfit demonstrations
+- difficult to use safely inside MPC
+- transfer behavior is uncertain
+
+The literature review must help determine which direction is scientifically justified.
+
+No final decision should be made yet.
+
+---
+
+### 18. Relation to Our Earlier Papers
+
+This paper connects strongly to Berret et al. (2011).
+
+Berret et al.:
+
+    Human Arm Motion
+          ↓
+    IOC
+          ↓
+    Composite Cost
+          ↓
+    Infer weights of candidate costs
+
+Veerkamp et al.:
+
+    Human Locomotion
+          ↓
+    Candidate Costs
+          ↓
+    Forward Simulation
+          ↓
+    Optimize weights
+          ↓
+    Predict Human Gait
+
+The difference is:
+
+    Berret:
+    Motion → Objective
+
+    Veerkamp:
+    Objective → Motion
+
+This distinction should remain explicit in our literature matrix.
+
+---
+
+### 19. Relation to Our Final Pipeline
+
+Veerkamp et al. address approximately:
+
+    Candidate Human Costs
+            ↓
+       Human Dynamics
+            ↓
+      Forward Simulation
+            ↓
+       Human-like Gait
+
+Our target pipeline is:
+
+    Human Demonstrations
+            ↓
+     Latent Objective
+            ↓
+         H1 Model
+            +
+     H1 Constraints
+            ↓
+           MPC
+            ↓
+       H1 Behavior
+            ↓
+      Generalization
+
+Therefore, the paper supports the motivation for the "objective" part of our project, but not the inference, transfer, or MPC parts.
+
+---
+
+### 20. Position in Our Literature Review
+
+| Question | Veerkamp et al. (2021) |
+|---|---|
+| Human motion? | Yes |
+| Human locomotion? | Yes |
+| Healthy gait? | Yes |
+| Cost functions? | Yes |
+| Multiple candidate objectives? | Yes |
+| Composite objective? | Yes |
+| Weight optimization? | Yes |
+| Forward simulation? | Yes |
+| Experimental gait comparison? | Yes |
+| IOC? | No |
+| IRL? | No |
+| Objective inferred from demonstrations? | No |
+| Objective representation learned from scratch? | No |
+| Neural objective? | No |
+| Humanoid robot? | No |
+| H1? | No |
+| Human-to-robot transfer? | No |
+| Different morphology? | No |
+| Different dynamics? | No |
+| MPC integration? | No |
+| Generalization across embodiments? | No |
+
+---
+
+### 21. Role in Our Project
+
+**Overall Role:**
+
+**Core human-locomotion objective paper.**
+
+This paper provides strong evidence that:
+
+> Multiple physiologically motivated criteria may contribute to the generation of human gait, and their relative weighting can strongly affect the predicted walking pattern.
+
+It also gives us a scientifically grounded list of candidate locomotion objectives rather than forcing us to invent them ourselves.
+
+However:
+
+> The paper does not demonstrate that these criteria constitute the true underlying neural objective of human locomotion.
+
+And:
+
+> It does not demonstrate that such an objective can be inferred from demonstrations and transferred to a different humanoid.
+
+---
+
+### 22. Final Takeaway
+
+The most important lesson for our project is:
+
+    Human locomotion
+          ↓
+    probably not explained well
+    by one simple cost
+          ↓
+    multiple criteria can matter
+
+But the next question is the one our project is interested in:
+
+    Which objective actually explains
+    the observed human demonstrations?
+
+And then:
+
+    Can that objective still be useful
+    when optimized using H1's
+    own dynamics and constraints?
+
+Veerkamp et al. answer the first part only indirectly.
+
+They show that carefully weighted combinations of candidate criteria can predict healthy gait well.
+
+They do NOT perform:
+
+    Human Motion
+          ↓
+    IOC / IRL
+          ↓
+    Learned Objective
+          ↓
+    H1
+          ↓
+    MPC
+
+Therefore:
+
+**Status: Required**
+
+**Research-gap status: Not established yet**
+
+**Key contribution to our literature review:**
+This paper establishes that human locomotion objective design is a real and nontrivial problem, and that composite cost functions can substantially improve gait prediction. It also gives us experimentally grounded candidate objective components that can later be considered when designing and interpreting our latent objective representation.
