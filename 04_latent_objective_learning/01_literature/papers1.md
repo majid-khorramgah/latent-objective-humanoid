@@ -5774,3 +5774,679 @@ The unresolved research problem remains the top half:
 **Key contribution to our literature review:**
 
 This paper provides a strong modern example of whole-body inverse-dynamics MPC that directly optimizes joint torques using full-order robot dynamics and physical constraints. It demonstrates real-time whole-body control on a Unitree B2 + Z1 platform, but does not learn objectives from human demonstrations or study human-to-humanoid objective transfer.
+
+
+
+
+
+
+
+
+## Paper 19 — Zhu, Ahn & Hong (2025)
+
+**Citation**  
+Zhu, T., Ahn, M. S., & Hong, D. W. (2025). *ARTEMIS: An Open-Source, Full-Sized Humanoid Robot for Dynamic Locomotion*. Proceedings of the 2025 IEEE-RAS 24th International Conference on Humanoid Robots (Humanoids), 269–276. DOI: 10.1109/HUMANOIDS65713.2025.11203020.
+
+**Literature Category**  
+RoMeLa / Dennis Hong / Humanoid Robotics / Model-Based Locomotion / Dynamic Humanoid Control
+
+---
+
+### 1. Research Problem
+
+The paper presents ARTEMIS, a full-sized humanoid robot designed for dynamic locomotion.
+
+The main problem is:
+
+> How can a full-sized humanoid robot be designed and controlled to achieve fast, dynamic, and robust locomotion in the real world?
+
+The paper focuses on the robot platform, its actuation system, and the model-based locomotion controller used to demonstrate dynamic walking and running.
+
+The paper is therefore primarily a **humanoid robotics and model-based control** contribution rather than an objective-learning paper.
+
+---
+
+### 2. Input
+
+The system uses:
+
+- the robot's state,
+- robot dynamics,
+- actuator measurements,
+- contact information,
+- locomotion commands,
+- robot model,
+- model-based control information.
+
+The robot has:
+
+- 20 active degrees of freedom,
+- custom proprioceptive actuators,
+- full-sized humanoid morphology.
+
+The system is evaluated in real-world environments, including outdoor terrain.
+
+The paper reports walking speeds of up to approximately 2.1 m/s and demonstrates transitions between walking and running.
+
+Therefore:
+
+- Full-sized humanoid: Yes
+- Dynamic locomotion: Yes
+- Walking: Yes
+- Running: Yes
+- Model-based control: Yes
+- Real robot: Yes
+- Outdoor validation: Yes
+- Human demonstrations: No
+- IOC: No
+- IRL: No
+- Human objective learning: No
+- Latent objective: No
+- Human-to-robot transfer: No
+- Unitree H1: No
+
+---
+
+### 3. Method
+
+The paper combines:
+
+1. A custom full-sized humanoid hardware platform.
+2. Custom proprioceptive actuators.
+3. A robot dynamics model.
+4. A model-based locomotion controller.
+5. Real-world experimental validation.
+
+The overall idea is:
+
+    Robot Hardware
+          +
+    Robot Dynamics
+          +
+    Model-Based Controller
+          ↓
+    Dynamic Humanoid Locomotion
+
+The paper also releases the robot model and baseline controllers as open-source resources.
+
+---
+
+### 4. Simple Explanation
+
+Imagine we want to make a humanoid robot run.
+
+There are two separate questions:
+
+**Question 1:**
+
+> Can we build a robot that is physically capable of doing it?
+
+**Question 2:**
+
+> Can we control that robot so that it actually walks and runs?
+
+ARTEMIS addresses both.
+
+It develops a full-sized humanoid and then demonstrates that the robot can perform dynamic locomotion using model-based control.
+
+The important point for our project is:
+
+> A humanoid does not need to copy human joint trajectories exactly in order to perform dynamic locomotion.
+
+Instead, the controller can use the robot's own dynamics and constraints to generate an appropriate motion.
+
+---
+
+### 5. Objective / Cost
+
+The paper does not attempt to discover a human objective.
+
+There is no:
+
+    Human Demonstration
+          ↓
+    Infer Human Objective
+
+stage.
+
+The locomotion controller uses predefined control objectives and model-based information.
+
+Therefore:
+
+- Objective learning: No
+- IOC: No
+- IRL: No
+- Latent objective learning: No
+- Human reward learning: No
+
+This distinction is important for our project.
+
+ARTEMIS demonstrates the **control side** of our proposed architecture, not the **objective-learning side**.
+
+---
+
+### 6. Model-Based Control
+
+The controller uses the robot's model to generate locomotion behavior.
+
+The basic concept is:
+
+    Desired Locomotion
+          +
+    Robot Dynamics
+          +
+    Robot State
+          ↓
+    Model-Based Controller
+          ↓
+    Robot Motion
+
+The important idea is that the controller does not simply replay a human trajectory.
+
+It generates motion that is compatible with the physical robot.
+
+This is closely related to the motivation behind our project.
+
+---
+
+### 7. Validation
+
+ARTEMIS is validated on a physical full-sized humanoid robot.
+
+The paper reports:
+
+- walking up to approximately 2.1 m/s,
+- transition between walking and running,
+- locomotion on different outdoor terrains,
+- robustness experiments,
+- successful performance in RoboCup-related competition.
+
+The paper therefore provides real-world evidence that the platform and model-based controller can support dynamic humanoid locomotion.
+
+---
+
+### 8. Main Finding
+
+The main finding is:
+
+> A full-sized humanoid robot with custom proprioceptive actuation and model-based control can achieve fast and dynamic locomotion, including walking and running, on real hardware.
+
+The paper demonstrates that dynamic humanoid locomotion is achievable through the combination of:
+
+    Appropriate Hardware
+          +
+    Robot Dynamics
+          +
+    Model-Based Control
+          ↓
+    Dynamic Locomotion
+
+---
+
+### 9. Important Limitation: No Human Objective Learning
+
+The paper does not ask:
+
+> What objective does a human optimize when walking or running?
+
+It therefore does not contribute directly to:
+
+    Human Motion
+          ↓
+    Human Objective
+
+This remains part of our Phase 4 research problem.
+
+---
+
+### 10. Important Limitation: No IOC / IRL
+
+The paper does not perform:
+
+- Inverse Optimal Control,
+- Inverse Reinforcement Learning,
+- reward inference,
+- cost inference from demonstrations.
+
+Therefore:
+
+    Observed Human Motion
+            ↓
+    Learned Objective
+
+is not part of ARTEMIS.
+
+---
+
+### 11. Important Limitation: No Human-to-Robot Transfer
+
+The paper does not investigate:
+
+    Human
+      ↓
+    Human Objective
+      ↓
+    Humanoid Robot
+      ↓
+    Robot-Specific Motion
+
+Instead, the locomotion behavior is generated using the robot's own model and controller.
+
+Therefore, it does not establish whether a human objective can transfer across different embodiments.
+
+---
+
+### 12. Important Limitation: No Latent Objective
+
+The paper does not learn a latent representation of human behavior.
+
+There is no:
+
+    Human Demonstrations
+          ↓
+       Latent z
+          ↓
+      Objective
+          ↓
+         MPC
+
+Therefore, the main research problem of our Phase 4 remains unaddressed.
+
+---
+
+### 13. Important Limitation: ARTEMIS ≠ H1
+
+ARTEMIS is a custom humanoid developed by UCLA RoMeLa.
+
+Our target robot is Unitree H1.
+
+Therefore:
+
+    ARTEMIS Dynamics
+          ≠
+    H1 Dynamics
+
+and:
+
+    ARTEMIS Constraints
+          ≠
+    H1 Constraints
+
+This distinction is important.
+
+Our project should not assume that a controller or objective that works on ARTEMIS will automatically work on H1.
+
+Instead, one of the motivations for learning an objective at a higher level is precisely to allow the robot's own dynamics and constraints to determine how the behavior is realized.
+
+---
+
+### 14. Relevance to Our Project
+
+**Relevance: High**
+
+The paper is highly relevant to the downstream part of our project:
+
+    Learned Objective
+          +
+    Robot Dynamics
+          +
+    Robot Constraints
+          ↓
+    Model-Based Control
+          ↓
+    Humanoid Motion
+
+ARTEMIS demonstrates the importance and feasibility of the following part:
+
+    Robot Dynamics
+          +
+    Model-Based Control
+          ↓
+    Real Humanoid Locomotion
+
+However, it does not address:
+
+    Human Demonstrations
+          ↓
+    Learned Human Objective
+
+Therefore, ARTEMIS should be viewed as a **RoMeLa/model-based humanoid control reference**, not as an objective-learning paper.
+
+---
+
+### 15. Relation to Professor Dennis Hong's Response
+
+This paper is particularly relevant because Dennis Hong is one of the authors and the work comes directly from UCLA RoMeLa.
+
+Hong's response to our project suggested:
+
+    Human Demonstrations
+          ↓
+    Learn Underlying Objectives
+          ↓
+    Model-Based MPC
+          ↓
+    Respect Robot Dynamics
+    and Physical Constraints
+
+ARTEMIS provides strong evidence that the RoMeLa side of this proposed architecture is technically meaningful:
+
+    Humanoid
+       +
+    Robot Dynamics
+       +
+    Model-Based Control
+       ↓
+    Dynamic Locomotion
+
+Our project adds a different research question before this stage:
+
+    Human Demonstrations
+          ↓
+    Learn Human Objective
+          ↓
+    Robot-Specific Model-Based Control
+
+Therefore, ARTEMIS is highly relevant for understanding the **target control framework** suggested by Hong.
+
+---
+
+### 16. Why This Matters for Our Research Question
+
+Suppose a human walks like this:
+
+    Human Joint Trajectory
+          ↓
+    Motion A
+
+If we directly imitate the trajectory on H1, we may encounter problems because:
+
+    Human Dynamics
+          ≠
+    H1 Dynamics
+
+Instead, our proposed approach is:
+
+    Human Demonstrations
+          ↓
+    Infer Objective
+          ↓
+    H1 Dynamics
+          +
+    H1 Constraints
+          ↓
+    Model-Based Control
+          ↓
+    H1-Specific Motion
+
+ARTEMIS supports the idea that the last step can be handled through model-based humanoid control.
+
+The unresolved question is whether the first step can be learned in a sufficiently generalizable way.
+
+---
+
+### 17. Research Gap Contribution
+
+ARTEMIS makes the following novelty claims insufficient:
+
+- "We use model-based control for humanoid locomotion."
+- "We control a full-sized humanoid using its dynamics."
+- "We generate dynamic walking on a humanoid."
+- "We demonstrate walking and running on a real humanoid."
+- "We use robot-specific dynamics and constraints for locomotion."
+
+These are already demonstrated by RoMeLa and other humanoid research.
+
+Therefore, our project should not claim novelty from model-based humanoid locomotion alone.
+
+A potentially interesting distinction remains:
+
+    Human Demonstrations
+          ↓
+    Human Objective
+          ↓
+    Transfer Across Embodiments
+          ↓
+    Model-Based Control
+          ↓
+    Robot-Specific Motion
+
+However:
+
+**Whether this constitutes a genuine research gap is NOT ESTABLISHED YET.**
+
+This must be determined from the complete IOC, IRL, human locomotion, MPC, and RoMeLa literature.
+
+---
+
+### 18. Important Conceptual Lesson
+
+ARTEMIS supports an important principle for our project:
+
+> A humanoid robot should be allowed to use its own dynamics to determine how a desired behavior is physically realized.
+
+For example, suppose the desired behavior is:
+
+    Walk forward
+    + 
+    Maintain balance
+    +
+    Move efficiently
+
+We should not necessarily specify:
+
+    "Move the left knee exactly like the human."
+
+Instead:
+
+    Desired Objective
+          ↓
+    H1 Dynamics
+          +
+    H1 Constraints
+          ↓
+    Model-Based Controller
+          ↓
+    H1 Motion
+
+This is one of the motivations for studying objective-level learning rather than direct trajectory imitation.
+
+---
+
+### 19. Relation to Other MPC Papers
+
+ARTEMIS complements the other model-based-control papers in our literature review.
+
+#### Zhang et al. (2025)
+
+Focus:
+
+    Whole-Body MPC
+          +
+    iLQR
+          ↓
+    Legged / Humanoid Control
+
+Main lesson:
+
+> Whole-body model-based MPC can generate robot motion in real time.
+
+#### Scianca et al. (2025)
+
+Focus:
+
+    MPC
+      +
+    Feasibility
+      +
+    Recovery
+      ↓
+    Robust Humanoid Locomotion
+
+Main lesson:
+
+> Feasibility and recovery are important for robust humanoid locomotion.
+
+#### Molnar et al. (2025/2026)
+
+Focus:
+
+    Full-Order Dynamics
+          +
+    Inverse Dynamics
+          +
+    Torque-Level MPC
+          ↓
+    Whole-Body Loco-Manipulation
+
+Main lesson:
+
+> Whole-body dynamics and torques can be optimized directly inside MPC.
+
+#### Zhu, Ahn & Hong (2025)
+
+Focus:
+
+    Full-Sized Humanoid
+          +
+    Custom Actuation
+          +
+    Model-Based Control
+          ↓
+    Dynamic Walking / Running
+
+Main lesson:
+
+> Model-based dynamic locomotion can be realized on a real full-sized humanoid developed in an academic lab.
+
+Together, these papers establish a strong model-based control foundation.
+
+---
+
+### 20. What This Paper Does NOT Establish
+
+The following statements cannot be concluded from ARTEMIS:
+
+1. Humans optimize a particular locomotion objective.
+2. Human locomotion objectives can be inferred from demonstrations.
+3. Human objectives are transferable across robot morphologies.
+4. A latent objective is more generalizable than trajectory imitation.
+5. A learned human objective can control H1.
+6. A learned human objective can generalize across humanoid embodiments.
+7. Objective learning combined with MPC is superior to trajectory imitation.
+
+All of these remain research questions for our project.
+
+---
+
+### 21. Project Management Decision
+
+**Status: Required**
+
+**Reason:**
+
+The paper is directly relevant to the final part of the architecture proposed by Professor Hong:
+
+    Robot Dynamics
+          +
+    Model-Based Control
+          +
+    Humanoid Constraints
+          ↓
+    Dynamic Humanoid Locomotion
+
+It is also directly connected to RoMeLa and Dennis Hong.
+
+However, it does NOT require any expansion of our research roadmap.
+
+We do NOT need to:
+
+- reproduce ARTEMIS,
+- build ARTEMIS,
+- use ARTEMIS as our robot,
+- add running to the research question,
+- or implement the entire ARTEMIS controller.
+
+Our target remains:
+
+    Unitree H1
+          ↓
+    Learned Human Objective
+          ↓
+    Model-Based MPC
+
+---
+
+### 22. Position in Our Literature Review
+
+| Question | ARTEMIS |
+|---|---|
+| Full-sized humanoid? | Yes |
+| Humanoid locomotion? | Yes |
+| Dynamic walking? | Yes |
+| Running? | Yes |
+| Model-based control? | Yes |
+| Real hardware? | Yes |
+| Outdoor validation? | Yes |
+| RoMeLa? | Yes |
+| Dennis Hong? | Yes |
+| Human demonstrations? | No |
+| Human locomotion objective? | No |
+| IOC? | No |
+| IRL? | No |
+| Latent objective learning? | No |
+| Learned cost? | No |
+| Human-to-robot transfer? | No |
+| Cross-embodiment generalization? | No |
+| Unitree H1? | No |
+| Human objective + MPC? | No |
+
+---
+
+### 23. Role in Our Project
+
+**Overall Role:**
+
+**Core RoMeLa / Dennis Hong / Model-Based Humanoid Locomotion reference.**
+
+The paper establishes that RoMeLa has demonstrated a full-sized humanoid capable of dynamic locomotion using model-based control and real-world validation.
+
+It therefore provides important context for the model-based control direction suggested by Professor Hong.
+
+However, it does not address the central objective-learning problem of our project.
+
+---
+
+### 24. Final Takeaway
+
+The most important lesson for our project is:
+
+> ARTEMIS shows that a full-sized humanoid can use its own dynamics and model-based controller to generate dynamic locomotion instead of simply replaying human trajectories.
+
+For our project, this motivates the following architecture:
+
+    Human Demonstrations
+            ↓
+    Learn Human Objective
+            ↓
+    H1 Dynamics
+            +
+    H1 Constraints
+            ↓
+    Model-Based MPC
+            ↓
+       H1-Specific Motion
+
+ARTEMIS strongly supports the **model-based humanoid control** part of this architecture.
+
+It does not solve the **human objective learning** part.
+
+Therefore:
+
+**Status: Required**
+
+**Research-gap status: Not established yet**
+
+**Key contribution to our literature review:**
+
+ARTEMIS demonstrates a real full-sized humanoid platform from RoMeLa using model-based control for dynamic walking and running. It establishes strong prior art for real-world model-based humanoid locomotion and therefore prevents us from claiming that model-based humanoid control itself is novel. The potentially novel part of our project must instead be investigated around learning and transferring human objectives.
