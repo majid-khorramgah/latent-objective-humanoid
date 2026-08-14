@@ -4,7 +4,7 @@
 
 ## 1. Literature Review
 
-Following the suggested research direction, we reviewed 20 relevant papers across five areas:
+Following the suggested research direction, we reviewed 20 relevant literature entries across five areas:
 
 1. Inverse Optimal Control (IOC)
 2. Inverse Reinforcement Learning (IRL)
@@ -57,6 +57,40 @@ Therefore, using these components individually is not sufficient as a novelty cl
 - [Papers 11–20](./papers1.md)
 - [Literature Matrix 1–10](./literature_matrix.md)
 - [Literature Matrix 11–20](./literature_matrix1.md)
+
+---
+
+### Papers 1–10 — IOC / Human Motion / Human Locomotion
+
+| # | Paper | Main Area |
+|---:|---|---|
+| **1** | **Todorov & Jordan (2002)** — *Optimal Feedback Control as a Theory of Motor Coordination* | IOC / Motor Control |
+| **2** | **Mombaur, Truong & Laumond (2010)** — *From Human to Humanoid Locomotion* | IOC / Human-to-Humanoid |
+| **3** | **Berret et al. (2011)** — *Evidence for Composite Cost Functions in Arm Movement Planning: An Inverse Optimal Control Approach* | IOC / Composite Objectives |
+| **4** | **Clever & Mombaur (2016); Clever, Hu & Mombaur (2018)** | Human Locomotion / Cost Functions |
+| **5** | **Maroger, Stasse & Watier (2022)** — *Inverse Optimal Control for Human Locomotion* | IOC / Human Locomotion |
+| **6** | **Liu et al. (2022)** — *Human-Robot Locomotion Objectives* | Human-Robot Objectives |
+| **7** | **Wu et al. (2023 / ICRA 2024)** | Human Motion / Locomotion Objectives |
+| **8** | **Bečanović, Jovanović & Bonnet (2024 / 2025)** | Human Locomotion / IOC |
+| **9** | **Dahmani et al. (2026)** | IOC / Locomotion |
+| **10** | **Mehrdad, Sabbah, Bonnet & Righetti (2026)** | IOC / Human Objective |
+
+---
+
+### Papers 11–20 — IRL / Locomotion Objectives / MPC / Humanoid
+
+| # | Paper | Main Area |
+|---:|---|---|
+| **11** | **Ng & Russell (2000)** — *Algorithms for Inverse Reinforcement Learning* | IRL |
+| **12** | **Ziebart et al. (2008)** — *Maximum Entropy IRL* | IRL |
+| **13** | **Wulfmeier et al. (2015/16)** — *Maximum Entropy Deep IRL* | Deep IRL |
+| **14** | **Veerkamp et al. (2021)** — *Evaluating Cost Function Criteria in Predicting Healthy Gait* | Locomotion Objectives |
+| **15** | **Feldman et al. (2026)** — *Multiple Movement Goals During Walking* | Locomotion Objectives |
+| **16** | **Zhang et al. (2025)** — *Whole-Body MPC of Legged Robots with MuJoCo* | MPC |
+| **17** | **Scianca et al. (2025)** — *Feasibility-Driven MPC for Humanoids* | MPC |
+| **18** | **Molnar et al. (2025)** — *Whole-Body Inverse Dynamics MPC* | MPC |
+| **19** | **Zhu, Ahn & Hong (2025)** — *ARTEMIS* | RoMeLa / Hong |
+| **20** | **Tanaka et al. (2025)** — *Mechanical Intelligence-Aware Curriculum RL for Humanoids* | RoMeLa / Hong / Humanoid RL |
 
 ---
 
@@ -217,7 +251,7 @@ The goal is:
 
 **04_01 Literature:** Complete for the current review scope
 
-**20 relevant papers reviewed:** Yes
+**20 relevant literature entries reviewed:** Yes
 
 **Preliminary Research Gap:** Identified, not yet confirmed as a novel contribution
 
