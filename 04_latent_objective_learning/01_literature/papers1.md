@@ -3264,3 +3264,794 @@ Therefore:
 **Key contribution to our literature review:**
 
 This paper provides recent experimental evidence that gait contains information about the relative priorities of multiple movement goals and that these priorities can be person-specific. This strengthens the motivation for learning an objective from human demonstrations, while simultaneously warning us that "the human objective" may not be a single universal function shared identically by every person.
+
+
+
+
+
+
+
+## Paper 16 — Zhang et al. (2025)
+
+**Citation**  
+Zhang, J. Z., Howell, T. A., Yi, Z., Pan, C., Shi, G., Qu, G., Erez, T., Tassa, Y., & Manchester, Z. (2025). *Whole-Body Model-Predictive Control of Legged Robots with MuJoCo*. arXiv preprint arXiv:2503.04613.
+
+**Literature Category**  
+Model-Based Control / Model-Predictive Control (MPC) / Whole-Body Humanoid Control / iLQR / Legged Robots
+
+---
+
+### 1. Research Problem
+
+The paper investigates whether real-time whole-body model-predictive control can be implemented for complex legged robots, including humanoids, using a relatively simple and reproducible approach.
+
+The central question is:
+
+> Can a whole-body MPC based on a standard physics engine and a standard optimization method achieve effective real-time locomotion on real legged robots?
+
+The paper focuses on the control problem rather than on learning the objective itself.
+
+This is directly relevant to our project because our final pipeline requires:
+
+    Learned Human Objective
+            ↓
+       Robot Dynamics
+            ↓
+           MPC
+            ↓
+      Humanoid Motion
+
+Zhang et al. provide an important precedent for the final part of this pipeline:
+
+    Robot Dynamics
+            +
+    Predefined Cost
+            ↓
+         iLQR / MPC
+            ↓
+      Humanoid Motion
+
+---
+
+### 2. Input
+
+The controller uses:
+
+- Robot state
+- Robot dynamics modeled in MuJoCo
+- A predefined objective/cost function
+- Control inputs
+- Contact dynamics
+- Robot geometry and collision information
+
+The method is evaluated in simulation and on real robot hardware.
+
+The experiments include:
+
+- dynamic quadruped locomotion,
+- quadruped walking on two legs,
+- other challenging whole-body behaviors,
+- full-sized humanoid bipedal locomotion.
+
+The hardware experiments include Unitree robots, including a full-sized Unitree H1 humanoid.
+
+Therefore:
+
+- Legged robot: Yes
+- Humanoid: Yes
+- Unitree H1: Yes
+- Whole-body dynamics: Yes
+- Real-time MPC: Yes
+- Real hardware: Yes
+- Human demonstrations: No
+- Human objective learning: No
+- IOC: No
+- IRL: No
+
+---
+
+### 3. Method
+
+The main method is:
+
+    MuJoCo Dynamics
+          ↓
+        iLQR
+          ↓
+    Whole-Body MPC
+          ↓
+    Time-Varying LQR Feedback
+          ↓
+    Joint-Level PD Control
+          ↓
+        Robot
+
+The main optimization problem is a nonlinear trajectory optimization problem:
+
+    minimize
+
+        Σ l(x_t, u_t) + l_f(x_T)
+
+    subject to
+
+        x_(t+1) = f(x_t, u_t)
+
+where:
+
+- x_t is the robot state,
+- u_t is the control input,
+- f represents robot dynamics,
+- l is the running cost,
+- l_f is the terminal cost.
+
+The iLQR algorithm repeatedly approximates the nonlinear problem around the current trajectory and improves the control sequence.
+
+---
+
+### 4. Simple Explanation of iLQR
+
+Suppose the H1 needs to walk forward.
+
+The controller asks:
+
+    "If I apply these torques for the next few steps,
+     where will the robot end up?"
+
+MuJoCo predicts the result.
+
+Then the controller asks:
+
+    "Can I change the torques slightly
+     to get a better result?"
+
+iLQR repeatedly performs this process:
+
+    Guess control
+        ↓
+    Simulate
+        ↓
+    Measure cost
+        ↓
+    Improve control
+        ↓
+    Simulate again
+        ↓
+    Improve again
+
+Eventually it obtains a good control sequence.
+
+Because MPC repeatedly re-solves the problem from the current state, it can react to changes and disturbances.
+
+---
+
+### 5. What Is Important About the MPC Formulation?
+
+The controller explicitly uses the robot's dynamics.
+
+Conceptually:
+
+    Robot Model
+        +
+    Objective
+        ↓
+    Optimization
+        ↓
+    Dynamically feasible motion
+
+This is fundamentally different from simply replaying a trajectory.
+
+For example:
+
+    Human trajectory
+          ↓
+    Replay on H1
+
+may fail because the human and H1 have different:
+
+- masses,
+- inertias,
+- joint limits,
+- actuator capabilities,
+- contact properties,
+- body proportions.
+
+MPC instead asks:
+
+    "Given H1's own dynamics,
+     what motion minimizes the objective?"
+
+This is exactly the model-based aspect that is important for our project.
+
+---
+
+### 6. Objective / Cost
+
+The paper does NOT learn the objective.
+
+The cost categories are designed beforehand.
+
+Conceptually:
+
+    Predefined Cost
+          ↓
+       Weights
+          ↓
+        iLQR
+          ↓
+    Optimal trajectory
+
+The user can adjust cost weights and other parameters.
+
+Therefore:
+
+    Cost learning: No
+    Cost inference: No
+    Objective discovery: No
+
+Instead:
+
+    Cost design
+        →
+    Optimization
+        →
+    Robot behavior
+
+This distinction is essential for our literature review.
+
+---
+
+### 7. Important Distinction for Our Project
+
+Zhang et al. solve approximately:
+
+    Objective
+        ↓
+    Robot Motion
+
+Our project wants to solve:
+
+    Human Motion
+        ↓
+    Human Objective
+        ↓
+    H1 Motion
+
+Therefore:
+
+    Zhang et al.
+
+    Objective
+       ↓
+      MPC
+       ↓
+    Humanoid
+
+versus:
+
+    Our Project
+
+    Human Demonstrations
+       ↓
+    Learned Objective
+       ↓
+    H1 MPC
+       ↓
+    Humanoid
+
+The missing component in Zhang et al. is the objective-learning stage.
+
+---
+
+### 8. Whole-Body Control
+
+The important feature of this work is that the controller reasons over the whole robot rather than treating locomotion as a simple low-dimensional problem.
+
+The dynamics include the robot's full-body state and control inputs.
+
+This is important for humanoids because walking depends on interactions between:
+
+- torso,
+- pelvis,
+- legs,
+- feet,
+- contact forces,
+- joint torques,
+- balance,
+- and whole-body momentum.
+
+Therefore, the paper provides a useful precedent for eventually placing a learned objective inside a whole-body model-based controller.
+
+---
+
+### 9. Contact Dynamics
+
+Legged robots are difficult to control with MPC because contact with the ground creates nonlinear and nonsmooth behavior.
+
+For example:
+
+    Foot in air
+        ↓
+    No ground force
+
+versus:
+
+    Foot touches ground
+        ↓
+    Contact force
+        ↓
+    New dynamics
+
+The paper uses MuJoCo's contact model and finite-difference approximations of derivatives.
+
+An important empirical result is that this relatively simple approach works surprisingly well despite model mismatch and the difficulties associated with contact dynamics.
+
+---
+
+### 10. Real-Time Control
+
+One of the major contributions is demonstrating that whole-body iLQR can operate in real time on hardware.
+
+The system architecture uses:
+
+    iLQR planner
+        ↓
+    nominal trajectory
+        +
+    TV-LQR feedback gains
+        ↓
+    high-frequency controller
+        ↓
+    Joint PD
+        ↓
+    Hardware
+
+The iLQR planner runs at a lower frequency while the feedback policy is updated at a higher frequency.
+
+This makes the approach practical for real robot control.
+
+---
+
+### 11. Validation
+
+The method is evaluated on both simulation and physical robot hardware.
+
+The experiments include several challenging whole-body behaviors involving quadrupeds and humanoids.
+
+Most importantly for our project, the authors demonstrate full-sized humanoid bipedal locomotion on hardware.
+
+The paper therefore establishes that:
+
+    Whole-Body Dynamics
+          +
+    MuJoCo
+          +
+    iLQR / MPC
+          ↓
+    Real Humanoid Locomotion
+
+is experimentally feasible.
+
+---
+
+### 12. Main Finding
+
+The main finding is:
+
+> A relatively simple whole-body MPC implementation using MuJoCo dynamics, iLQR, and finite-difference derivatives can achieve effective real-time control of legged robots, including full-sized humanoids, on physical hardware.
+
+This is important because whole-body nonlinear MPC is often considered computationally difficult due to:
+
+- high-dimensional dynamics,
+- contact,
+- nonlinearities,
+- real-time requirements,
+- and derivative computation.
+
+The paper shows that a simpler implementation can nevertheless work effectively.
+
+---
+
+### 13. Important Limitation: Objective Is Hand-Designed
+
+The objective is not learned from demonstrations.
+
+The cost categories are manually designed before optimization.
+
+Therefore:
+
+    Human Demonstrations
+            ↓
+    Learned Objective
+
+is NOT addressed.
+
+This is one of the largest differences between this work and our project.
+
+---
+
+### 14. Important Limitation: No Human Data
+
+The paper does not use human demonstrations to infer the objective.
+
+There is no:
+
+    Human Motion
+          ↓
+    IOC / IRL
+          ↓
+    Cost
+
+stage.
+
+Therefore, it cannot answer our central Phase 4 question:
+
+> What objective underlies human locomotion?
+
+---
+
+### 15. Important Limitation: No Human-to-Robot Objective Transfer
+
+Although the controller can operate on humanoid hardware, it does not demonstrate:
+
+    Human
+      ↓
+    Human Objective
+      ↓
+    H1
+
+The objective is designed for the robot/control task rather than inferred from human behavior.
+
+Therefore, human-to-humanoid objective transfer remains unaddressed.
+
+---
+
+### 16. Important Limitation: No Latent Objective
+
+The paper does not learn a latent representation such as:
+
+    z = latent human objective
+
+followed by:
+
+    z
+    ↓
+    H1 cost
+    ↓
+    MPC
+
+There is no representation-learning component for discovering an unknown human objective.
+
+---
+
+### 17. Important Limitation: No Generalization of Human Objective
+
+The paper demonstrates that its controller can generalize to real hardware with relatively few sim-to-real considerations.
+
+However, this is not the same as our notion of objective generalization.
+
+Their question is approximately:
+
+    Does the MPC controller work
+    when transferred from simulation
+    to hardware?
+
+Our question is:
+
+    Does an objective learned from
+    human demonstrations remain useful
+    when optimized under different
+    robot dynamics and conditions?
+
+These are different forms of generalization.
+
+---
+
+### 18. Relevance to Our Project
+
+**Relevance: Very High**
+
+This paper is highly relevant to Phase 5 and Phase 6 because it provides a practical example of whole-body model-based MPC for humanoid locomotion.
+
+It supports the feasibility of the downstream pipeline:
+
+    Robot Dynamics
+          +
+    Cost Function
+          ↓
+        MPC
+          ↓
+    Whole-Body Humanoid Motion
+
+This is precisely the control mechanism that we eventually want to use after learning the human objective.
+
+---
+
+### 19. Relation to Our Project Architecture
+
+Our intended architecture is:
+
+    Human Demonstrations
+            ↓
+    Latent Human Objective
+            ↓
+    H1-Compatible Cost
+            ↓
+    H1 Dynamics
+            +
+    H1 Constraints
+            ↓
+    Whole-Body MPC
+            ↓
+    H1 Behavior
+
+Zhang et al. provide evidence for the right-hand side:
+
+    H1 Dynamics
+          +
+    Cost
+          ↓
+        MPC
+          ↓
+    H1 Behavior
+
+Therefore, this paper supports the feasibility of our final control stage but does not solve the objective-learning problem.
+
+---
+
+### 20. Relation to the "Different Robot Dynamics" Question
+
+This paper reinforces an important conceptual advantage of our approach.
+
+Suppose we directly imitate human motion:
+
+    Human trajectory
+          ↓
+    H1
+
+The trajectory may not be dynamically feasible for H1.
+
+With MPC:
+
+    Human-derived objective
+            ↓
+       H1 dynamics
+            ↓
+       H1 constraints
+            ↓
+       feasible H1 motion
+
+The controller does not need to reproduce the human trajectory exactly.
+
+Instead, it searches for a motion that satisfies the objective while obeying the robot's own physical model.
+
+This is closely aligned with the motivation behind the project.
+
+---
+
+### 21. What This Paper Does NOT Prove
+
+The paper does NOT prove that:
+
+- human objectives can be learned,
+- human objectives are transferable to robots,
+- a learned human objective is sufficient for humanoid control,
+- one objective is universal across humans,
+- a learned objective will generalize across robot morphologies,
+- MPC will automatically produce human-like behavior.
+
+Those questions remain open.
+
+---
+
+### 22. Research Gap Contribution
+
+This paper makes the following claim insufficient as novelty:
+
+> "We use whole-body MPC to control a humanoid."
+
+Whole-body MPC for humanoids has already been demonstrated.
+
+Similarly:
+
+> "We use MuJoCo/iLQR for humanoid control."
+
+This is also established.
+
+Therefore, our novelty should NOT be based on simply implementing MPC.
+
+A potentially interesting distinction is:
+
+    Existing:
+
+    Hand-designed Cost
+          ↓
+    Whole-Body MPC
+          ↓
+    Humanoid Motion
+
+
+    Our Target:
+
+    Human Demonstrations
+          ↓
+    Learned Human Objective
+          ↓
+    Whole-Body MPC
+          ↓
+    H1 Motion
+
+However:
+
+**Whether this constitutes a genuine research gap is NOT ESTABLISHED YET.**
+
+The remaining literature on learned costs, IOC/IRL, human-to-humanoid transfer, and humanoid MPC must be checked before making a novelty claim.
+
+---
+
+### 23. Implication for Our Project
+
+This paper suggests that we do not need to invent a completely new MPC algorithm for the project.
+
+If our research question is:
+
+> Can a human-derived objective generate generalizable humanoid behavior?
+
+then the MPC can potentially be a strong existing baseline.
+
+The research contribution would primarily be in:
+
+    Human Demonstrations
+          ↓
+    Objective Learning
+          ↓
+    Objective Transfer
+          ↓
+    MPC-based H1 Behavior
+
+rather than:
+
+    Inventing a new MPC solver
+
+This helps keep the project small and focused.
+
+---
+
+### 24. Project Management Decision
+
+**Status: Required**
+
+Reason:
+
+The paper directly supports the feasibility of the model-based control stage required by the project and demonstrates whole-body MPC on humanoid hardware, including Unitree H1.
+
+It should therefore remain in the core MPC literature set.
+
+However:
+
+**No roadmap expansion is required.**
+
+We do NOT need to add:
+
+- a new MPC algorithm,
+- a new simulator,
+- a new humanoid platform,
+- or a new control architecture
+
+just because of this paper.
+
+The existing plan remains:
+
+    Isaac Lab + H1
+          ↓
+    Learned Objective
+          ↓
+    Model-Based MPC
+          ↓
+    H1 Control
+
+---
+
+### 25. Position in Our Literature Review
+
+| Question | Zhang et al. (2025) |
+|---|---|
+| Model-based control? | Yes |
+| MPC? | Yes |
+| Whole-body control? | Yes |
+| iLQR? | Yes |
+| MuJoCo dynamics? | Yes |
+| Contact dynamics? | Yes |
+| Real-time control? | Yes |
+| Real hardware? | Yes |
+| Humanoid? | Yes |
+| Unitree H1? | Yes |
+| Human demonstrations? | No |
+| Human objective learning? | No |
+| IOC? | No |
+| IRL? | No |
+| Latent objective? | No |
+| Human-to-robot transfer? | No |
+| Learned cost? | No |
+| Hand-designed cost? | Yes |
+| Generalization of human objective? | No |
+| MPC + learned human objective? | No |
+| Generalization across embodiments? | No |
+
+---
+
+### 26. Role in Our Project
+
+**Overall Role:**
+
+**Core Model-Based Control / MPC paper.**
+
+This paper demonstrates that:
+
+    Whole-Body Dynamics
+          +
+    Predefined Objective
+          +
+    iLQR / MPC
+          ↓
+    Real-Time Humanoid Control
+
+is feasible in practice.
+
+For our project, it provides the downstream control foundation:
+
+    Learned Objective
+          ↓
+    H1 Whole-Body MPC
+
+rather than requiring us to develop a new MPC method.
+
+---
+
+### 27. Final Takeaway
+
+The most important lesson for our project is:
+
+> We do not necessarily need to invent a new MPC algorithm. Existing whole-body MPC methods are already capable of controlling full-sized humanoids in real time.
+
+The unresolved question relevant to our project is instead:
+
+    What happens if we replace
+
+    Hand-Designed Robot Cost
+
+    with
+
+    Human-Derived Learned Objective?
+
+Conceptually:
+
+    Existing Work:
+
+    Designed Cost
+         ↓
+        MPC
+         ↓
+       H1
+
+
+    Our Target:
+
+    Human Demonstrations
+         ↓
+    Learned Objective
+         ↓
+        MPC
+         ↓
+       H1
+         ↓
+    Generalization
+
+That is the part that remains to be investigated.
+
+**Status: Required**
+
+**Research-gap status: Not established yet**
+
+**Key contribution to our literature review:**
+
+This paper establishes a strong practical baseline for whole-body model-based MPC of humanoids and demonstrates that real-time iLQR/MPC using a physics simulator can control full-sized humanoid hardware. It therefore supports the feasibility of the downstream control stage of our project, while leaving the human-objective inference and human-to-humanoid objective-transfer questions open.
