@@ -4055,3 +4055,151 @@ That is the part that remains to be investigated.
 **Key contribution to our literature review:**
 
 This paper establishes a strong practical baseline for whole-body model-based MPC of humanoids and demonstrates that real-time iLQR/MPC using a physics simulator can control full-sized humanoid hardware. It therefore supports the feasibility of the downstream control stage of our project, while leaving the human-objective inference and human-to-humanoid objective-transfer questions open.
+
+
+
+
+
+
+
+
+## Paper 17 — Scianca et al. (2025)
+
+**Citation**  
+Scianca, N., Smaldone, F. M., Lanari, L., & Oriolo, G. (2025). *A Feasibility-Driven MPC Scheme for Robust Gait Generation in Humanoids*. Robotics and Autonomous Systems, 189, 104957. https://doi.org/10.1016/j.robot.2025.104957
+
+**Literature Category**  
+Model-Based Control / Model Predictive Control (MPC) / Humanoid Locomotion / Robust Control / Feasibility-Aware MPC
+
+---
+
+### 1. Research Problem
+
+The paper investigates how a humanoid robot can maintain stable walking when it experiences disturbances such as:
+
+- persistent disturbances,
+- external pushes,
+- impacts,
+- or other perturbations.
+
+The central question is:
+
+> How can MPC determine in real time whether the current walking plan remains feasible, and what should the robot do when that plan is no longer feasible?
+
+This is important because humanoid locomotion is not only an optimization problem.
+
+The robot must also satisfy physical and stability constraints.
+
+Conceptually:
+
+    Good Objective
+          +
+    Feasible Motion
+          +
+    Stable Dynamics
+          ↓
+    Successful Humanoid Walking
+
+---
+
+### 2. Input
+
+The controller receives information about:
+
+- current robot state,
+- planned footsteps,
+- center of mass (CoM),
+- Zero Moment Point (ZMP),
+- disturbance estimates,
+- stability constraints,
+- feasibility conditions.
+
+The system is evaluated using:
+
+- HRP-4 simulation,
+- NAO experiments,
+- OP3 experiments.
+
+Therefore:
+
+- Humanoid locomotion: Yes
+- MPC: Yes
+- Robust locomotion: Yes
+- Feasibility analysis: Yes
+- Real robot experiments: Yes
+- Human demonstrations: No
+- Human objective learning: No
+- IOC: No
+- IRL: No
+- H1: No
+
+---
+
+### 3. Method
+
+The proposed method is called:
+
+**Robust Intrinsically Stable Model Predictive Control (RIS-MPC).**
+
+The controller has two operating modes:
+
+    Standard Mode
+          ↓
+    Normal walking
+
+and:
+
+    Recovery Mode
+          ↓
+    Adapt walking plan
+    when feasibility is lost
+
+The controller continuously checks whether the current state and planned motion satisfy the required feasibility and stability conditions.
+
+---
+
+### 4. Simple Explanation
+
+Imagine H1 is walking normally:
+
+    Step 1 → Step 2 → Step 3 → Step 4
+
+Now an external force pushes H1.
+
+The original plan may no longer be safe:
+
+    Step 1 → Step 2 → X → Step 4
+
+Instead of blindly following the original plan, the controller checks:
+
+    "Can I still execute the current plan?"
+
+If yes:
+
+    Continue normal MPC.
+
+If no:
+
+    Change the plan.
+
+For example:
+
+    Change foot position
+          or
+    Change footstep timing
+
+and find a new feasible motion.
+
+Conceptually:
+
+    Current State
+         ↓
+    Is current plan feasible?
+       /             \
+     Yes              No
+      ↓                ↓
+ Normal MPC      Recovery MPC
+      ↓                ↓
+ Continue        Change steps/timing
+ walking             ↓
+                  Recover
