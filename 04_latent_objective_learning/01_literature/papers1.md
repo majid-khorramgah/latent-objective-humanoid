@@ -1059,3 +1059,701 @@ For our project, this is useful because the desired learned objective should ide
 
 **Reason:**  
 This paper is essential for understanding probabilistic IRL and behavioral variability. It does not provide the final solution to our problem, but it establishes an important foundation for reasoning about human demonstrations.
+
+
+
+
+## Paper 13 — Wulfmeier et al. (2015/2016)
+
+**Citation**  
+Wulfmeier, M., Ondruska, P., & Posner, I. (2015). *Deep Inverse Reinforcement Learning*. arXiv:1507.04888.
+
+Published/extended version: *Maximum Entropy Deep Inverse Reinforcement Learning* (2016).
+
+**Literature Category**  
+Inverse Reinforcement Learning (IRL) / Maximum Entropy IRL / Deep Reward Learning / Nonlinear Cost Function Learning
+
+---
+
+### 1. Research Problem
+
+Traditional Inverse Reinforcement Learning (IRL) attempts to infer the reward function that explains observed behavior.
+
+A common formulation represents the reward as a weighted combination of manually designed features:
+
+    Reward =
+        w1 * Feature1
+        +
+        w2 * Feature2
+        +
+        ...
+
+This creates an important limitation.
+
+The researcher must decide beforehand which features are relevant.
+
+For simple problems this may be sufficient, but realistic environments can contain large state spaces and complicated interactions between features.
+
+The paper therefore asks:
+
+> Can neural networks be used to learn complex and nonlinear reward functions from demonstrations?
+
+The main idea is to combine:
+
+    Maximum Entropy IRL
+            +
+    Deep Neural Networks
+            ↓
+    Nonlinear Reward Function
+
+---
+
+### 2. Input
+
+The input consists of demonstrations of an agent's behavior together with a model of the environment.
+
+Conceptually:
+
+    Demonstrations
+          +
+    Environment Model
+          ↓
+    Deep IRL
+          ↓
+    Learned Reward Function
+
+The paper is primarily demonstrated in navigation/path-planning style environments rather than human locomotion.
+
+Therefore:
+
+- Demonstrations: Yes
+- IRL: Yes
+- Human locomotion: No
+- Humanoid robot: No
+- H1: No
+
+---
+
+### 3. Method
+
+The paper uses a neural network to approximate the reward function inside a Maximum Entropy IRL framework.
+
+Instead of assuming:
+
+    Reward = weighted sum of predefined features
+
+the model learns a nonlinear mapping:
+
+    State / Features
+          ↓
+    Neural Network
+          ↓
+    Reward
+
+The neural network provides a much more expressive representation of the reward.
+
+The Maximum Entropy formulation provides the probabilistic treatment of demonstrations.
+
+Therefore, the overall idea is:
+
+    Demonstrations
+          ↓
+    Maximum Entropy IRL
+          +
+    Neural Network
+          ↓
+    Nonlinear Reward
+
+The authors show that deep networks can represent complex reward structures and can be trained efficiently in this IRL setting. :contentReference[oaicite:1]{index=1}
+
+---
+
+### 4. Simple Example
+
+Imagine a human driving a car through a city.
+
+Suppose the human avoids:
+
+- obstacles,
+- narrow roads,
+- dangerous regions,
+- sharp turns,
+- and uncomfortable driving situations.
+
+A traditional feature-based reward might be:
+
+    Cost =
+        w1 * obstacle_distance
+        +
+        w2 * road_curvature
+        +
+        w3 * distance
+        +
+        ...
+
+The researcher has to manually decide these features.
+
+But some important behavior may depend on interactions between several factors.
+
+For example:
+
+    narrow road
+        +
+    sharp turn
+        +
+    nearby obstacle
+
+may produce a behavior that cannot easily be represented by a simple weighted sum.
+
+The deep IRL approach allows a neural network to learn such nonlinear relationships.
+
+Conceptually:
+
+    Environment State
+            ↓
+       Neural Network
+            ↓
+      Learned Reward
+
+---
+
+### 5. Objective / Cost Representation
+
+The major contribution of the paper is the use of a neural network as the reward-function approximator.
+
+Instead of:
+
+    Reward =
+        w1 * Feature1
+        +
+        w2 * Feature2
+        +
+        ...
+
+we have:
+
+    Reward = NeuralNetwork(State / Features)
+
+This allows the reward to contain nonlinear interactions between features.
+
+The paper also investigates extending the architecture so that it can operate on raw input representations rather than depending entirely on manually precomputed spatial features. :contentReference[oaicite:2]{index=2}
+
+---
+
+### 6. Why This Is Important
+
+This paper represents an important transition in the literature:
+
+    Classical IRL
+          ↓
+    Hand-designed features
+          ↓
+    Learn feature weights
+
+versus:
+
+    Deep IRL
+          ↓
+    Neural representation
+          ↓
+    Learn complex nonlinear reward
+
+This is highly relevant to our project because we do not yet know whether the human locomotion objective can be adequately described by a small number of manually selected terms.
+
+---
+
+### 7. Relation to Previous Papers
+
+The progression is:
+
+    Ng & Russell (2000)
+            ↓
+    Formal IRL problem
+
+    Ziebart et al. (2008)
+            ↓
+    Probabilistic / Maximum Entropy IRL
+
+    Wulfmeier et al. (2015/2016)
+            ↓
+    Deep / Nonlinear Maximum Entropy IRL
+
+The conceptual progression is therefore:
+
+    Demonstration
+          ↓
+    Infer Reward
+          ↓
+    Allow behavioral variability
+          ↓
+    Allow complex nonlinear reward representations
+
+This progression is important for understanding the evolution of objective learning.
+
+---
+
+### 8. Validation
+
+The paper evaluates the proposed approach on IRL benchmarks.
+
+The authors report performance comparable to state-of-the-art methods on established benchmarks and improved performance on a benchmark with highly varying and complex reward structures. :contentReference[oaicite:3]{index=3}
+
+The paper also considers larger neural architectures that reduce dependence on precomputed spatial features and allow learning from raw input representations. :contentReference[oaicite:4]{index=4}
+
+The main validation therefore concerns:
+
+    Can a deep reward model
+    explain complex demonstration behavior?
+
+The answer is demonstrated to be positive in the studied benchmark settings.
+
+---
+
+### 9. Main Finding
+
+The main finding is:
+
+> Neural networks can be used within Maximum Entropy IRL to represent complex, nonlinear reward functions that are difficult to express using manually designed linear feature combinations.
+
+This significantly increases the representational capacity of IRL.
+
+In simple terms:
+
+    Old approach:
+
+    Human designs features
+            ↓
+    IRL learns weights
+
+
+    Deep IRL:
+
+    Human provides demonstrations
+            ↓
+    Neural network represents reward
+            ↓
+    IRL learns the reward
+
+The paper therefore shows that reward learning does not have to be restricted to a simple weighted sum of predefined features. :contentReference[oaicite:5]{index=5}
+
+---
+
+### 10. Important Limitation: Neural Reward Is Not Automatically a Human Objective
+
+This is extremely important for our project.
+
+A neural network can learn a function that explains demonstrations well.
+
+But this does not automatically mean that the network has discovered the meaningful human objective.
+
+For example:
+
+    Human Motion
+          ↓
+    Neural Network
+          ↓
+    Reward
+
+The network may learn a complicated function that predicts human behavior.
+
+But we may still not know whether that function represents:
+
+- energy,
+- balance,
+- smoothness,
+- comfort,
+- speed,
+- robustness,
+- task success,
+- or interactions between these factors.
+
+Therefore:
+
+    Learned Neural Reward
+            ≠
+    Guaranteed Human Objective
+
+This distinction must remain explicit in our project.
+
+---
+
+### 11. Representation Limitation
+
+Although the neural network is much more expressive than a simple linear feature model, the input representation still matters.
+
+The network learns a mapping from its available inputs to reward.
+
+Therefore:
+
+    Input Representation
+            ↓
+       Neural Network
+            ↓
+          Reward
+
+If important information is absent from the input, the network cannot recover it.
+
+This creates an important question for our project:
+
+> What information about human motion should be provided to the objective-learning system?
+
+This question belongs later in:
+
+    04_03 Human Data
+
+and:
+
+    04_04 Objective Representation
+
+It should not be decided at the literature stage.
+
+---
+
+### 12. No Human Locomotion
+
+The paper does not study human walking or running as its central problem.
+
+Therefore, it does not tell us:
+
+> What objective humans use for locomotion.
+
+It only tells us that:
+
+> A complex nonlinear reward can be learned from demonstrations using deep IRL.
+
+This distinction is important.
+
+We cannot use this paper as evidence that human locomotion optimizes a particular set of objectives.
+
+---
+
+### 13. No Humanoid Transfer
+
+The paper does not address the problem:
+
+    Human
+      ↓
+    Learned Objective
+      ↓
+    Different Robot
+      ↓
+    New Robot Behavior
+
+In particular, it does not study:
+
+- human-to-humanoid transfer,
+- morphology differences,
+- robot-specific dynamics,
+- contact constraints,
+- actuator limits,
+- whole-body balance,
+- or H1 locomotion.
+
+Therefore, the transfer problem remains open.
+
+---
+
+### 14. No Model-Based Humanoid MPC
+
+The paper focuses on learning the reward/cost function.
+
+It does not demonstrate the complete pipeline:
+
+    Human Demonstrations
+            ↓
+    Learned Human Objective
+            ↓
+       H1 Dynamics
+            +
+       H1 Constraints
+            ↓
+           MPC
+            ↓
+       H1 Behavior
+
+Therefore, it does not solve the final control problem of our project.
+
+---
+
+### 15. Generalization Limitation
+
+The paper demonstrates that learned nonlinear reward functions can generalize within the studied problem settings.
+
+However, it does not establish generalization across substantially different physical systems.
+
+In particular, it does not demonstrate:
+
+    Human Dynamics
+          ↓
+    Learned Objective
+          ↓
+    H1 Dynamics
+
+Therefore, we cannot claim from this paper that a learned reward is automatically transferable across embodiments.
+
+---
+
+### 16. Relevance to Our Project
+
+**Relevance: High**
+
+This paper is highly relevant to our Phase 4 because it establishes an important possibility:
+
+> The underlying reward/cost does not necessarily have to be represented as a simple weighted combination of manually designed features.
+
+This is directly relevant to our current uncertainty about objective representation.
+
+We currently do NOT know whether the human locomotion objective should be:
+
+    Linear weighted sum
+
+or:
+
+    Nonlinear function
+
+or:
+
+    Latent representation
+
+or:
+
+    Another structure entirely.
+
+Wulfmeier et al. show that nonlinear learned reward functions are technically possible.
+
+They do not tell us that a neural reward is necessarily the correct representation for human locomotion.
+
+---
+
+### 17. Research Gap Contribution
+
+This paper means that the following is NOT a sufficient novelty claim:
+
+> "We use a neural network to learn the reward from human demonstrations."
+
+Deep IRL has already established this direction.
+
+Similarly, the following is not sufficient:
+
+> "Our reward is nonlinear."
+
+That is also established by the deep IRL literature.
+
+Therefore, if our project uses a neural network, the novelty cannot simply be the neural network itself.
+
+A potentially more important distinction is:
+
+    Deep IRL:
+        Learn a complex reward that explains demonstrations
+
+versus our target:
+
+    Human demonstrations
+            ↓
+    Objective with meaningful structure
+            ↓
+    Transfer across embodiment
+            ↓
+    H1 dynamics + constraints
+            ↓
+    MPC
+            ↓
+    Generalizable behavior
+
+Whether this difference represents a genuine research gap is:
+
+**NOT ESTABLISHED YET**
+
+It must be checked against the human locomotion, humanoid, and model-based control literature.
+
+---
+
+### 18. Important Implication for Our Project
+
+This paper gives us an important warning:
+
+**Do not confuse model capacity with objective meaning.**
+
+A sufficiently powerful neural network may be able to fit demonstrations very well.
+
+But:
+
+    Good demonstration fit
+            ≠
+    Meaningful human objective
+
+Therefore, our future evaluation should not only ask:
+
+> Can the learned objective reproduce the training demonstrations?
+
+It should also ask:
+
+> Does the learned objective produce useful behavior under new conditions?
+
+and eventually:
+
+> Does the learned objective remain useful when optimized using H1's own dynamics and constraints?
+
+This connects directly to our planned:
+
+    04_08 Held-out Evaluation
+
+and:
+
+    04_09 Analysis
+
+---
+
+### 19. Difference Between Wulfmeier et al. and Our Project
+
+Wulfmeier et al.:
+
+    Demonstrations
+          ↓
+    Deep IRL
+          ↓
+    Nonlinear Reward
+          ↓
+    Explain / reproduce behavior
+
+Our target:
+
+    Human Locomotion Demonstrations
+              ↓
+      Human Objective Inference
+              ↓
+       Generalizable Objective
+              ↓
+         H1 Dynamics
+              +
+         H1 Constraints
+              ↓
+             MPC
+              ↓
+       H1-generated behavior
+
+The important additional requirements in our project are:
+
+- human locomotion,
+- meaningful objective representation,
+- generalization,
+- different embodiment,
+- different dynamics,
+- physical constraints,
+- and model-based control.
+
+---
+
+### 20. Important Lesson for Phase 4
+
+This paper gives us the following principle:
+
+> The objective representation should not be assumed to be a simple linear combination of manually selected features.
+
+However, it does NOT imply:
+
+> We should automatically use a neural network.
+
+Therefore, the correct decision at the current stage is:
+
+    Candidate:
+    Neural nonlinear objective
+
+    Status:
+    Possible
+
+    Decision:
+    Not yet established
+
+The final objective representation should be selected only after the remaining literature and experiments.
+
+---
+
+### 21. Position in Our Literature Review
+
+| Question | Wulfmeier et al. (2015/2016) |
+|---|---|
+| Demonstrations used? | Yes |
+| IRL used? | Yes |
+| Maximum Entropy IRL? | Yes |
+| Neural network reward? | Yes |
+| Nonlinear reward? | Yes |
+| Complex reward structure? | Yes |
+| Human demonstrations? | General demonstrations; not human locomotion |
+| Human locomotion? | No |
+| Latent human objective? | Not established |
+| Interpretable human objective? | Not guaranteed |
+| Objective representation learned from scratch? | Partially, via neural approximation |
+| Robot morphology transfer? | No |
+| Different dynamics transfer? | No |
+| Humanoid robot? | No |
+| MPC integration? | No |
+| H1-specific constraints? | No |
+| Generalizable objective across embodiments? | No |
+
+---
+
+### 22. Role in Our Project
+
+**Overall Role:**
+
+**Important bridge from classical feature-based IRL to nonlinear/deep objective learning.**
+
+The paper shows:
+
+    Classical IRL
+          ↓
+    Hand-designed features
+          ↓
+    Learn weights
+
+can be extended to:
+
+    Deep IRL
+          ↓
+    Neural reward representation
+          ↓
+    Learn complex nonlinear reward
+
+For our project, this is important because we have not yet established that human locomotion objectives can be represented by a small set of manually selected costs.
+
+However, this paper does not solve the key problem we ultimately care about:
+
+    Human Objective
+          ↓
+    Different Humanoid
+          ↓
+    Robot Dynamics + Constraints
+          ↓
+    MPC
+          ↓
+    Generalizable Behavior
+
+---
+
+### 23. Final Takeaway
+
+The most important lesson from Wulfmeier et al. is:
+
+> A reward learned from demonstrations can be much more complex than a simple weighted sum of hand-designed features.
+
+But the equally important warning is:
+
+> A powerful neural reward model that fits demonstrations well is not automatically the true or meaningful human objective.
+
+Therefore, for our project:
+
+    Neural Reward
+         ↓
+    Candidate representation
+
+not:
+
+    Neural Reward
+         ↓
+    Assumed final solution
+
+**Status: Required**
+
+**Reason:**  
+This paper is necessary for understanding how modern IRL can learn nonlinear reward functions and for preventing us from incorrectly claiming novelty for simply using a neural network to learn an objective.
