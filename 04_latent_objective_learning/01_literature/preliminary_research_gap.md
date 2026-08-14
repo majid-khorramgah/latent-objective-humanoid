@@ -4,19 +4,178 @@
 
 ### Executive Summary
 
-We reviewed 20 relevant papers across Inverse Optimal Control (IOC), Inverse Reinforcement Learning (IRL), human locomotion objectives, model-based MPC, and humanoid locomotion/control.
+The project has progressed through three foundational milestones:
 
-The literature provides the main components separately: objectives can be inferred from human demonstrations, and humanoid robots can generate motion using their own dynamics and constraints with model-based control.
+**Milestone 1 — Isaac Lab / H1 Setup:**  
+Established the NVIDIA Isaac Lab simulation environment and validated the Unitree H1 humanoid in simulation.
 
-Our preliminary research direction is to connect these components: **infer an underlying objective from human locomotion demonstrations, then optimize that objective on the Unitree H1 using its own dynamics and physical constraints through MPC, rather than directly imitating human trajectories.**
+**Milestone 2 — H1 Locomotion Baseline:**  
+Trained a PPO-based H1 locomotion policy and established a stable walking baseline. This also showed an important limitation: the policy learns a predefined robot reward rather than the underlying objectives expressed in human motion.
 
-The next step is to formulate this idea as a **specific, experimentally testable problem** in `04_02_problem_formulation`.
+**Milestone 3 — Human Motion Representation:**  
+Built an AMASS + SMPL-X pipeline that converts human motion capture data into structured 3D joint trajectories and temporal motion features suitable for objective inference.
+
+These milestones establish the **robot, locomotion baseline, and human demonstration pipeline**. The research question therefore becomes meaningful at the next stage:
+
+> **Can we infer an underlying objective from human locomotion demonstrations and optimize that objective on the H1 using its own dynamics and physical constraints, rather than directly imitating human trajectories?**
+
+The next step is **04_02 Problem Formulation**, where this question will be converted into a specific, experimentally testable problem.
 
 ---
 
-## 1. Literature Review
+## 1. Why the Project Reaches Phase 4
 
-We reviewed 20 relevant papers across five areas:
+The first three milestones were not intended to be the final research contribution. They establish the necessary experimental infrastructure.
+
+The progression is:
+
+    Milestone 1
+    Isaac Lab + Unitree H1
+            ↓
+    Robot simulation foundation
+
+
+    Milestone 2
+    H1 locomotion baseline
+            ↓
+    Known robot control baseline
+
+
+    Milestone 3
+    AMASS + SMPL-X
+            ↓
+    Human motion demonstrations
+            ↓
+    Structured motion representation
+
+
+    Phase 4
+    Human motion
+            ↓
+    Infer underlying objective
+            ↓
+    H1 dynamics + constraints
+            ↓
+    Model-Based MPC
+            ↓
+    H1 behavior
+
+Therefore, Phase 4 is the point where the project moves from **infrastructure and representation** to the actual research question.
+
+---
+
+## 2. Milestone 1 — Isaac Lab and H1 Setup
+
+Milestone 1 established the simulation foundation using:
+
+- NVIDIA Isaac Sim
+- NVIDIA Isaac Lab
+- Unitree H1
+- GPU-accelerated simulation
+- RSL-RL
+- PPO
+
+The H1 was successfully loaded and simulated in Isaac Lab.
+
+### Research role
+
+This milestone answers:
+
+> **Can we reliably conduct the planned humanoid experiments in simulation?**
+
+Result:
+
+**Yes.**
+
+The H1 simulation environment is operational and can be used for subsequent control experiments.
+
+---
+
+## 3. Milestone 2 — H1 Locomotion Baseline
+
+Milestone 2 trained the Unitree H1 using PPO in:
+
+    Isaac-Velocity-Flat-H1-v0
+
+The policy was trained for approximately:
+
+    5000 iterations
+    450M+ simulation steps
+
+The resulting policy achieved stable locomotion and velocity tracking.
+
+### Research role
+
+This milestone establishes a baseline for robot locomotion.
+
+More importantly, it reveals the limitation motivating the research:
+
+> The H1 can learn to walk using a predefined robot reward, but this reward does not necessarily represent the underlying objectives expressed by human locomotion.
+
+For example, the robot can learn:
+
+    "maximize the predefined locomotion reward"
+
+without learning:
+
+    "what makes human locomotion efficient,
+     stable, natural, or adaptable?"
+
+Therefore:
+
+    PPO baseline
+          ↓
+    Robot learns a predefined objective
+
+but our research asks:
+
+    Human demonstrations
+          ↓
+    Infer the underlying objective
+
+This distinction motivates Phase 4.
+
+---
+
+## 4. Milestone 3 — Human Motion Representation
+
+Milestone 3 established the human-data pipeline using:
+
+    AMASS
+      ↓
+    SMPL-X
+      ↓
+    3D Joint Motion
+      ↓
+    Position / Velocity / Acceleration
+
+The pipeline converts human motion capture sequences into structured representations suitable for analysis and future learning.
+
+### Research role
+
+This milestone answers:
+
+> **Can human demonstrations be converted into a representation from which an objective could potentially be inferred?**
+
+Result:
+
+**Yes, as a starting point.**
+
+However, Milestone 3 does NOT yet infer the human objective.
+
+It provides the input to Phase 4:
+
+    Human Demonstration
+          ↓
+    Structured Motion
+          ↓
+    Objective Inference       ← CURRENT RESEARCH PROBLEM
+
+---
+
+## 5. What We Reviewed
+
+We reviewed approximately 20 relevant papers across five main areas:
 
 1. Inverse Optimal Control (IOC)
 2. Inverse Reinforcement Learning (IRL)
@@ -24,46 +183,7 @@ We reviewed 20 relevant papers across five areas:
 4. Model-Based Control / MPC
 5. Humanoid / RoMeLa-related work
 
-### Main conclusions
-
-**IOC / IRL**
-
-Human demonstrations can be used to infer objectives or rewards:
-
-    Observed Motion
-          ↓
-    Objective / Reward
-
-However, many existing approaches depend on predefined features, cost structures, or reward representations.
-
-**Human Motion / Locomotion**
-
-Human movement may reflect multiple competing criteria or goals.
-
-Therefore, we should NOT assume in advance that the objective is:
-
-    Energy + Stability + Smoothness + Robustness
-
-These remain candidate hypotheses.
-
-**Model-Based MPC**
-
-MPC can generate robot motion while considering:
-
-- Robot dynamics
-- Contacts
-- Actuation limits
-- Physical constraints
-
-Therefore, MPC itself is not the proposed novelty.
-
-**Humanoid Locomotion**
-
-Humanoid locomotion, RL, MPC, and dynamics-aware control are already established research areas.
-
-Therefore, the contribution should not be claimed from using any of these components individually.
-
-### Detailed Literature
+### Literature Review
 
 - [Papers 1–10](./papers.md)
 - [Papers 11–20](./papers1.md)
@@ -72,9 +192,52 @@ Therefore, the contribution should not be claimed from using any of these compon
 
 ---
 
-## 2. What We Learned
+## 6. What the Literature Already Provides
 
-The literature already provides the main building blocks separately:
+The literature already provides important components of the proposed framework.
+
+### IOC / IRL
+
+Human demonstrations can be used to infer objectives or rewards:
+
+    Observed Motion
+          ↓
+    Objective / Reward
+
+However, many approaches rely on predefined features, cost structures, or reward representations.
+
+### Human Motion / Locomotion
+
+Human movement can be explained using multiple movement criteria or goals.
+
+Therefore, we should NOT assume in advance that the human objective is:
+
+    Energy + Stability + Smoothness + Robustness
+
+These remain candidate hypotheses.
+
+### Model-Based MPC
+
+MPC can generate robot motion while explicitly considering:
+
+- Robot dynamics
+- Contacts
+- Actuation limits
+- Physical constraints
+
+Therefore, MPC itself is not the proposed novelty.
+
+### Humanoid Locomotion
+
+Humanoid locomotion, RL, MPC, and dynamics-aware control are already established research areas.
+
+Therefore, the contribution should not be claimed from using any of these components individually.
+
+---
+
+## 7. What the Literature Suggests
+
+The existing literature largely covers the following two directions separately:
 
     Human Demonstrations
             ↓
@@ -93,55 +256,114 @@ The literature already provides the main building blocks separately:
         ↓
     Humanoid Motion
 
-The remaining question is whether these components can be connected through a transferable human objective.
-
-The key distinction is:
-
-    Direct Trajectory Transfer
-            ✗
-
-    Objective Transfer
-            ✓
-
-We do not want the H1 to reproduce the human trajectory.
-
-Instead:
-
-    Human Motion
-         ↓
-    Infer Objective
-         ↓
-    H1 + its own Dynamics
-         ↓
-        MPC
-         ↓
-    H1 generates its own motion
-
----
-
-## 3. Preliminary Research Gap
-
-The current preliminary research question is:
-
-> **Can an objective inferred from human locomotion demonstrations remain meaningful when it is re-optimized under the dynamics and physical constraints of a different humanoid robot?**
-
-Conceptually:
+This suggests a potential connection:
 
     Human Demonstrations
             ↓
-    Learned Human Objective
+    Infer Human Objective
             ↓
-    H1 Dynamics + Constraints
+    Different Robot Dynamics
             ↓
           MPC
             ↓
-       H1 Behavior
-            ↓
-      Unseen Conditions
+    Robot Behavior
 
-This is a **preliminary research gap**, not yet a confirmed novelty claim.
+The important question is whether an objective inferred from human locomotion remains useful when optimized by a robot with different morphology, dynamics, actuation, and physical constraints.
 
-The potentially interesting combination is:
+---
+
+## 8. Preliminary Research Gap
+
+The current preliminary research gap is:
+
+> **Can an objective inferred from human locomotion demonstrations remain meaningful when it is re-optimized under the dynamics and physical constraints of a different humanoid robot?**
+
+The key distinction from direct imitation is:
+
+    Human Trajectory
+          ↓
+    Direct Imitation
+          ↓
+    Robot Motion
+
+versus:
+
+    Human Trajectory
+          ↓
+    Infer Underlying Objective
+          ↓
+    H1 Dynamics + Constraints
+          ↓
+          MPC
+          ↓
+    H1 Generates Its Own Motion
+
+The goal is therefore not to make the H1 move like a human joint-by-joint.
+
+The goal is to determine whether the H1 can pursue a **human-derived objective** while producing motion that is physically appropriate for the H1.
+
+---
+
+## 9. Why This Could Matter for Generalization
+
+A trajectory is strongly tied to the body that produced it.
+
+For example:
+
+    Human body
+        ↓
+    Human trajectory
+
+If the robot has different:
+
+- limb lengths
+- mass distribution
+- joint limits
+- actuator capabilities
+- contact dynamics
+
+then directly copying the trajectory may not be physically appropriate.
+
+An objective may be more transferable than the trajectory itself.
+
+Conceptually:
+
+    Human
+    Motion
+      ↓
+    Objective
+      ↓
+    ┌───────────────┐
+    │               │
+    H1             Other
+    dynamics       humanoid
+    │               │
+    ↓               ↓
+    Own motion     Own motion
+
+This is the hypothesis that motivates the generalization experiments.
+
+However:
+
+> **Whether an inferred human objective is actually more transferable than a trajectory remains unknown and must be experimentally tested.**
+
+---
+
+## 10. What Is NOT Established as Novelty
+
+The following are NOT established as novel contributions by themselves:
+
+- IOC
+- IRL
+- Learning rewards from demonstrations
+- Composite human movement objectives
+- Human locomotion objective inference
+- Humanoid MPC
+- Humanoid RL
+- Robot dynamics-aware control
+- AMASS-based human motion processing
+
+The potentially interesting contribution is the combination:
 
     Human Objective Inference
             +
@@ -153,32 +375,43 @@ The potentially interesting combination is:
             +
     Generalization
 
-Whether this combination represents a genuine research gap must be further established during problem formulation and experimental design.
+However:
+
+> **This remains a preliminary research gap, not a confirmed novelty claim.**
+
+The literature review does not yet justify claiming that this exact formulation has never been attempted.
 
 ---
 
-## 4. Current Project Scope
+## 11. Current Project Scope
 
-The target robot is the Unitree H1.
+The initial target system is:
 
-The initial research will be simulation-based using:
+    Robot:
+    Unitree H1
 
-- NVIDIA Isaac Lab
-- Unitree H1
-- Human motion demonstrations
-- Model-based control / MPC
+    Simulation:
+    NVIDIA Isaac Sim / Isaac Lab
+
+    Human Data:
+    AMASS / SMPL-X
+
+    Control:
+    Model-Based MPC
+
+The initial validation will be entirely simulation-based.
 
 A physical H1 is NOT required for the initial research validation.
 
-The first objective is to establish whether the proposed approach works in simulation before considering real-robot validation.
+The purpose of the simulation study is to determine whether the proposed objective-transfer concept is experimentally supported before considering real-robot deployment.
 
 ---
 
-## 5. Human Data Direction
+## 12. Human Data Direction
 
-AMASS is a suitable source of human motion demonstrations.
+AMASS provides a suitable starting point for human locomotion demonstrations.
 
-An existing preprocessing pipeline provides:
+The existing pipeline produces:
 
     AMASS
       ↓
@@ -186,85 +419,101 @@ An existing preprocessing pipeline provides:
       ↓
     3D Joint Motion
       ↓
-    Position / Velocity / Acceleration
+    Position
+    Velocity
+    Acceleration
 
-This provides a useful starting point for the human-data stage.
+This data can therefore serve as input to the objective-inference stage.
 
-However, we will NOT assume that a VAE, Transformer, large neural latent representation, or a predefined objective is necessary.
+However, we will NOT assume that a:
+
+- VAE
+- Transformer
+- large neural latent representation
+- or predefined objective structure
+
+is necessary.
 
 The appropriate objective representation remains an open research question.
 
----
-
-## 6. What Is NOT Established as Novelty
-
-The following are established research directions and are not, by themselves, novelty claims:
-
-- IOC
-- IRL
-- Learning rewards from demonstrations
-- Composite human movement objectives
-- Humanoid MPC
-- Humanoid RL
-- Robot dynamics-aware control
-
-The research contribution, if supported by further investigation, would instead concern the relationship between:
-
-    Human Objective
-          ↓
-    Different Robot Dynamics
-          ↓
-    Constraint-Aware MPC
-          ↓
-    Generalizable Humanoid Behavior
+This will be determined during `04_02_problem_formulation`.
 
 ---
 
-## 7. Next Step — 04_02 Problem Formulation
+## 13. Next Step — 04_02 Problem Formulation
 
-The next stage is NOT yet implementation.
+The next stage is not yet large-scale implementation.
 
-We will formally define:
+We will first define a specific and testable formulation.
 
-1. What constitutes a human demonstration.
-2. What information is extracted from the demonstration.
-3. What "objective" means in this project.
-4. How the objective is represented.
+We need to determine:
+
+1. What constitutes a human locomotion demonstration.
+2. Which information is extracted from it.
+3. What "objective" means mathematically.
+4. Whether the objective is parameterized or latent.
 5. How the objective is inferred.
-6. How the learned objective is transferred to H1.
-7. How H1 dynamics and constraints enter the optimization.
-8. What the MPC solves.
-9. What "generalization" means experimentally.
-10. What baselines and evaluation metrics are required.
+6. What assumptions are made about the objective.
+7. How the objective is transferred to H1.
+8. How H1 dynamics enter the optimization.
+9. How physical constraints are enforced.
+10. What MPC actually solves.
+11. What constitutes successful transfer.
+12. What "generalization" means experimentally.
+13. Which baselines are required.
+14. Which metrics will distinguish objective transfer from trajectory imitation.
 
-The goal is to convert the preliminary research direction into a:
+The output of this stage should be a:
 
-> **specific, experimentally testable problem.**
+> **specific, experimentally testable research problem.**
 
 ---
 
-## 8. Current Status
+## 14. Current Status
 
+    Milestone 1
+    Isaac Lab + H1
+          ↓
+       Complete
+
+    Milestone 2
+    H1 Locomotion Baseline
+          ↓
+       Complete
+
+    Milestone 3
+    Human Motion Representation
+          ↓
+       Complete
+
+    Phase 4.1
     Literature Review
           ↓
-       Completed
+       Complete
           ↓
-    Prior Work Synthesized
+    Preliminary Research Gap
           ↓
-    Preliminary Gap Identified
+       Identified
           ↓
+    Phase 4.2
     Problem Formulation
           ↓
-       NEXT STEP
+        NEXT
 
-### Status
+### Status Summary
 
-**04_01 Literature: Complete for the current review scope**
+**Milestone 1 — Isaac Lab / H1 Setup:** Complete
 
-**20 papers reviewed: Yes**
+**Milestone 2 — H1 Locomotion Baseline:** Complete
 
-**Research Gap: Preliminary / Not yet fully established**
+**Milestone 3 — Human Motion Representation:** Complete
 
-**04_02 Problem Formulation: Next**
+**04_01 Literature:** Complete for the current review scope
 
-**Final Research Question: Not locked yet**
+**20 relevant papers reviewed:** Yes
+
+**Preliminary Research Gap:** Identified, but not yet confirmed as a novel contribution
+
+**Final Research Question:** Not locked yet
+
+**04_02 Problem Formulation:** Next
