@@ -4203,3 +4203,856 @@ Conceptually:
  Continue        Change steps/timing
  walking             ↓
                   Recover
+
+
+
+
+
+
+
+
+## Paper 17 — Scianca et al. (2025)
+
+**Citation**  
+Scianca, N., Smaldone, F. M., Lanari, L., & Oriolo, G. (2025). *A Feasibility-Driven MPC Scheme for Robust Gait Generation in Humanoids*. Robotics and Autonomous Systems, 189, 104957. https://doi.org/10.1016/j.robot.2025.104957
+
+**Literature Category**  
+Model-Based Control / Model Predictive Control (MPC) / Humanoid Locomotion / Robust Control / Feasibility-Aware MPC
+
+---
+
+### 1. Research Problem
+
+The paper investigates how a humanoid robot can maintain robust and stable walking when it experiences disturbances.
+
+The main question is:
+
+> How can MPC determine whether the current walking plan is still physically feasible, and what should the robot do when the current plan becomes infeasible?
+
+This is important because humanoid locomotion is not simply an optimization problem.
+
+A controller must find a motion that is:
+
+- desirable,
+- dynamically feasible,
+- stable,
+- and compatible with the robot's constraints.
+
+Conceptually:
+
+    Objective
+        +
+    Robot Dynamics
+        +
+    Constraints
+        +
+    Feasibility
+        ↓
+       MPC
+        ↓
+    Humanoid Motion
+
+The paper focuses on the last part of this pipeline: robust model-based humanoid control.
+
+---
+
+### 2. Input
+
+The controller uses information including:
+
+- current robot state,
+- planned footsteps,
+- Center of Mass (CoM),
+- Zero Moment Point (ZMP),
+- estimated disturbances,
+- stability constraints,
+- feasibility conditions.
+
+The method is evaluated in simulation and on physical humanoid robots.
+
+The reported validation includes:
+
+- HRP-4 simulation,
+- NAO experiments,
+- OP3 experiments.
+
+Therefore:
+
+- Humanoid locomotion: Yes
+- MPC: Yes
+- Robust locomotion: Yes
+- Feasibility analysis: Yes
+- Real robot experiments: Yes
+- Human demonstrations: No
+- Human objective learning: No
+- IOC: No
+- IRL: No
+- Unitree H1: No
+
+---
+
+### 3. Method
+
+The proposed framework is called:
+
+**Robust Intrinsically Stable Model Predictive Control (RIS-MPC).**
+
+The controller has two operating modes:
+
+    Standard Mode
+          ↓
+    Normal walking
+
+and:
+
+    Recovery Mode
+          ↓
+    Recovery after strong disturbances
+
+The important idea is that the controller chooses the mode based on whether the current state remains feasible.
+
+In standard mode:
+
+    Fixed footsteps
+          ↓
+    MPC
+          ↓
+    CoM + ZMP trajectories
+
+If a strong disturbance makes the current plan infeasible:
+
+    Feasibility lost
+          ↓
+    Recovery Mode
+          ↓
+    Modify footsteps
+    and/or timing
+          ↓
+    Recover feasibility
+
+The paper formulates both modes as optimization problems involving Quadratic Programs (QPs) and provides analysis of their feasibility. :contentReference[oaicite:0]{index=0}
+
+---
+
+### 4. Simple Explanation
+
+Imagine that the humanoid is walking:
+
+    Step 1 → Step 2 → Step 3 → Step 4
+
+Now someone pushes the robot.
+
+The original plan may no longer be safe:
+
+    Step 1 → Step 2 → X → Step 4
+
+A normal controller might try to continue following the original plan.
+
+This paper instead asks:
+
+> Can the robot still execute this plan?
+
+If the answer is yes:
+
+    Continue normal MPC.
+
+If the answer is no:
+
+    Change the walking plan.
+
+For example:
+
+    Change foot position
+          or
+    Change footstep timing
+
+and search for a new feasible solution.
+
+Conceptually:
+
+    Current State
+         ↓
+    Is current plan feasible?
+       /             \
+     Yes              No
+      ↓                ↓
+ Standard MPC      Recovery MPC
+      ↓                ↓
+ Continue          Change steps
+ walking           / timing
+                       ↓
+                  Recover walking
+
+This is the central idea of the paper. :contentReference[oaicite:1]{index=1}
+
+---
+
+### 5. Why Is It Called "Feasibility-Driven"?
+
+The important point is that MPC is not only asking:
+
+> Which motion has a lower cost?
+
+It is also asking:
+
+> Is this motion still physically possible?
+
+A motion can have a good cost but still be impossible for the humanoid to execute.
+
+Therefore:
+
+    Low Cost
+       ≠
+    Feasible Motion
+
+The controller must satisfy both:
+
+    Good Objective
+          +
+    Physical Feasibility
+
+This distinction is highly relevant to our project.
+
+---
+
+### 6. Objective / Cost
+
+The objective is predefined.
+
+The paper does NOT learn the objective from human demonstrations.
+
+The controller is designed to realize a predefined sequence of footsteps while maintaining stability and feasibility.
+
+In standard mode, the MPC computes CoM and ZMP trajectories while respecting stability-related constraints.
+
+Therefore:
+
+- Objective learning: No
+- IOC: No
+- IRL: No
+- Latent objective learning: No
+- Human demonstration learning: No
+
+The main contribution is not discovering what the robot should optimize.
+
+The contribution is making the model-based controller robust when the original plan becomes infeasible.
+
+---
+
+### 7. Important Concept: Feasibility
+
+For this project, "feasibility" can be understood simply as:
+
+> Is there still a physically valid way for the robot to execute the desired motion while satisfying its constraints?
+
+For a humanoid, this can involve:
+
+- balance,
+- ZMP constraints,
+- CoM behavior,
+- foot placement,
+- footstep timing,
+- contact conditions,
+- dynamic limitations.
+
+For example:
+
+    Desired Motion
+          ↓
+    Is it dynamically possible?
+          ↓
+       Yes → Execute
+       No  → Find another motion
+
+This is exactly the type of issue that becomes important when a learned human objective is transferred to a robot with different dynamics.
+
+---
+
+### 8. Standard Mode
+
+In standard mode:
+
+- footsteps are treated as fixed,
+- MPC computes CoM and ZMP trajectories,
+- robust stability constraints are imposed,
+- disturbance information is incorporated,
+- the controller attempts to follow the predefined walking plan.
+
+The purpose is to maintain stable walking while following the planned footsteps. :contentReference[oaicite:2]{index=2}
+
+---
+
+### 9. Recovery Mode
+
+If a sufficiently strong disturbance violates the conditions required for the standard mode, the controller switches to recovery mode.
+
+In recovery mode:
+
+- footstep positions can be modified,
+- footstep timings can be modified,
+- a new feasible walking plan is searched for.
+
+Conceptually:
+
+    Disturbance
+         ↓
+    Current plan becomes infeasible
+         ↓
+    Recovery Mode
+         ↓
+    Change foot position/timing
+         ↓
+    Restore feasibility
+
+This allows the robot to adapt the walking plan rather than blindly following an invalid trajectory. :contentReference[oaicite:3]{index=3}
+
+---
+
+### 10. Robustness
+
+The paper considers different kinds of perturbations.
+
+Two important examples are:
+
+#### Persistent perturbation
+
+A disturbance that remains for an extended period.
+
+Example:
+
+    Walking under a persistent external force
+    or
+    walking on an incline
+
+#### Impulsive perturbation
+
+A short and sudden disturbance.
+
+Example:
+
+    Someone pushes the robot.
+
+The controller is designed to remain feasible and stable under such perturbations and to switch to recovery when the standard plan is no longer feasible. :contentReference[oaicite:4]{index=4}
+
+---
+
+### 11. MPC Formulation
+
+The paper uses Model Predictive Control.
+
+The basic MPC idea is:
+
+    Current State
+         ↓
+    Predict future motion
+         ↓
+    Optimize over a horizon
+         ↓
+    Apply part of the solution
+         ↓
+    Observe new state
+         ↓
+    Optimize again
+
+This allows the controller to continuously reconsider the walking motion as the robot state changes.
+
+The important difference in this paper is that the controller also reasons about the feasibility region.
+
+Therefore:
+
+    State
+      +
+    Future prediction
+      +
+    Constraints
+      +
+    Feasibility
+      ↓
+    MPC decision
+
+---
+
+### 12. Stability and ZMP
+
+A major part of the approach uses the relationship between:
+
+- Center of Mass (CoM)
+- Zero Moment Point (ZMP)
+
+The controller computes trajectories that satisfy stability-related constraints.
+
+A simple intuition is:
+
+> The robot must keep its motion compatible with the area in which its contact with the ground can support it.
+
+If a disturbance pushes the robot outside the conditions required for the current walking plan, the original plan may no longer be feasible.
+
+This motivates the switch to recovery mode.
+
+---
+
+### 13. Validation
+
+The method is validated through:
+
+- simulations on HRP-4,
+- experiments on NAO,
+- experiments on OP3.
+
+The experiments evaluate robust humanoid gait generation under perturbations.
+
+The paper also provides theoretical analysis of feasibility and conditions for recursive feasibility of the standard mode. :contentReference[oaicite:5]{index=5}
+
+---
+
+### 14. Main Finding
+
+The main finding is:
+
+> A humanoid MPC controller can improve robustness by explicitly reasoning about the feasibility of the current walking plan and switching to a recovery strategy when the original plan becomes infeasible.
+
+The important principle is:
+
+    Optimize
+       +
+    Check feasibility
+       +
+    Adapt when necessary
+       ↓
+    Robust Humanoid Locomotion
+
+rather than:
+
+    Optimize once
+       ↓
+    Follow the original plan blindly
+
+---
+
+### 15. Important Limitation: No Human Objective
+
+The paper does not investigate:
+
+> What objective does a human optimize while walking?
+
+The desired walking behavior is predefined.
+
+Therefore, it does not address:
+
+    Human Motion
+         ↓
+    Infer Human Objective
+
+This remains outside the scope of the paper.
+
+---
+
+### 16. Important Limitation: No IOC / IRL
+
+The method is not Inverse Optimal Control (IOC).
+
+It is also not Inverse Reinforcement Learning (IRL).
+
+There is no:
+
+    Human Demonstration
+          ↓
+    Infer Cost / Reward
+
+stage.
+
+Instead, the structure is:
+
+    Predefined Objective
+          +
+    Robot Model
+          +
+    Constraints
+          ↓
+         MPC
+          ↓
+    Humanoid Motion
+
+---
+
+### 17. Important Limitation: No Latent Objective
+
+The paper does not learn a latent objective representation.
+
+There is no:
+
+    Human Demonstrations
+          ↓
+       Latent z
+          ↓
+       Cost(z)
+          ↓
+         MPC
+
+Therefore, the central Phase 4 problem of our project remains unaddressed.
+
+---
+
+### 18. Important Limitation: No Human-to-Robot Transfer
+
+The paper does not investigate whether a human-derived objective can be transferred to a humanoid robot.
+
+There is no:
+
+    Human
+      ↓
+    Human Objective
+      ↓
+    Humanoid
+
+transfer experiment.
+
+This is one of the important differences between this paper and our research direction.
+
+---
+
+### 19. Important Limitation: Different Robot Platforms
+
+The paper evaluates the approach using HRP-4 simulation and physical experiments on NAO and OP3.
+
+It does not evaluate Unitree H1. :contentReference[oaicite:6]{index=6}
+
+Therefore:
+
+    Feasibility-Aware MPC
+          ↓
+    Humanoid
+
+is experimentally supported.
+
+But:
+
+    Feasibility-Aware MPC
+          ↓
+    Unitree H1
+
+is not directly established by this paper.
+
+This does not reduce its value for our literature review because the underlying control principle is relevant.
+
+---
+
+### 20. Relevance to Our Project
+
+**Relevance: High**
+
+This paper is highly relevant to the downstream model-based control stage.
+
+Our intended architecture is:
+
+    Human Demonstrations
+            ↓
+    Learned Human Objective
+            ↓
+    H1-Compatible Cost
+            +
+       H1 Dynamics
+            +
+       H1 Constraints
+            +
+       Feasibility
+            ↓
+           MPC
+            ↓
+        H1 Behavior
+
+Scianca et al. strongly support the importance of:
+
+    Robot Dynamics
+          +
+    Constraints
+          +
+    Feasibility
+          ↓
+         MPC
+
+They do not address:
+
+    Human Demonstrations
+          ↓
+    Learned Human Objective
+
+Therefore, their work is complementary to our objective-learning problem.
+
+---
+
+### 21. Relation to Zhang et al. (2025)
+
+Zhang et al. (2025) and Scianca et al. (2025) address complementary aspects of model-based humanoid control.
+
+#### Zhang et al.
+
+Main focus:
+
+    Whole-Body Dynamics
+          +
+    iLQR / MPC
+          ↓
+    Real-Time Humanoid Control
+
+Main lesson:
+
+> Whole-body model-based MPC can be implemented effectively for legged and humanoid robots.
+
+#### Scianca et al.
+
+Main focus:
+
+    MPC
+      +
+    Feasibility
+      +
+    Robustness
+      ↓
+    Recovery
+
+Main lesson:
+
+> Humanoid MPC should explicitly account for feasibility and should be able to modify the walking plan when disturbances make the original plan infeasible.
+
+Together:
+
+    Whole-Body MPC
+          +
+    Feasibility
+          +
+    Robustness
+          ↓
+    Practical Humanoid Control
+
+---
+
+### 22. Relation to Our Project
+
+Our intended final architecture is:
+
+    Human Demonstrations
+            ↓
+    Latent Human Objective
+            ↓
+    H1-Compatible Cost
+            ↓
+       H1 Dynamics
+            +
+       H1 Constraints
+            +
+        Feasibility
+            ↓
+           MPC
+            ↓
+        H1 Behavior
+
+Scianca et al. mainly address:
+
+    H1/Robot Dynamics
+            +
+       Constraints
+            +
+       Feasibility
+            ↓
+           MPC
+
+They do not address:
+
+    Human Demonstrations
+            ↓
+    Latent Human Objective
+
+Therefore, this paper does not solve the central research problem of Phase 4.
+
+It strengthens the justification for the downstream control architecture.
+
+---
+
+### 23. Research Gap Contribution
+
+This paper makes the following novelty claims insufficient:
+
+- "We use MPC for humanoid locomotion."
+- "We use feasibility-aware MPC."
+- "We make humanoid MPC robust to disturbances."
+- "We adapt footsteps when the walking plan becomes infeasible."
+
+These areas have already been investigated.
+
+The authors' research group also has related prior work on feasibility-aware plan adaptation, joint-level whole-body MPC, and humanoid gait generation. :contentReference[oaicite:7]{index=7}
+
+Therefore, we should NOT make feasibility-aware MPC itself the central novelty of our project.
+
+A potentially interesting combination remains:
+
+    Human Demonstrations
+          ↓
+    Learned Human Objective
+          ↓
+    Feasibility-Aware MPC
+          ↓
+    H1 Behavior
+
+However:
+
+**Whether this combination constitutes a genuine research gap is NOT ESTABLISHED YET.**
+
+This must be checked against the remaining literature before making a novelty claim.
+
+---
+
+### 24. Implication for Our Project
+
+This paper gives us an important design principle:
+
+> A learned objective cannot simply be optimized without considering whether the resulting motion is physically feasible for H1.
+
+Suppose the learned human objective prefers:
+
+    Fast walking
+    +
+    Low effort
+    +
+    Smooth motion
+
+The resulting optimum for a human may not be physically possible for H1.
+
+Therefore:
+
+    Learned Human Objective
+             ↓
+        H1 Dynamics
+             +
+        H1 Constraints
+             +
+         Feasibility
+             ↓
+            MPC
+             ↓
+       Feasible H1 Motion
+
+This is exactly the type of model-based transfer that the project is trying to investigate.
+
+---
+
+### 25. Project Management Decision
+
+**Status: Required**
+
+Reason:
+
+The paper is directly relevant to the model-based control stage and demonstrates that feasibility should be treated as a fundamental part of robust humanoid MPC.
+
+However:
+
+**No roadmap expansion is required.**
+
+We do NOT need to create a new research branch for:
+
+- feasibility-aware MPC,
+- recovery MPC,
+- new footstep adaptation,
+- or a new humanoid MPC algorithm.
+
+These are established research directions.
+
+Our project should remain focused on:
+
+    Learning the human objective
+          ↓
+    Applying it through model-based control
+
+---
+
+### 26. Position in Our Literature Review
+
+| Question | Scianca et al. (2025) |
+|---|---|
+| Model-based control? | Yes |
+| MPC? | Yes |
+| Humanoid locomotion? | Yes |
+| Robust locomotion? | Yes |
+| Feasibility-aware control? | Yes |
+| Stability constraints? | Yes |
+| Disturbance handling? | Yes |
+| Recovery behavior? | Yes |
+| Footstep adaptation? | Yes |
+| Real robot experiments? | Yes |
+| Human demonstrations? | No |
+| Human objective learning? | No |
+| IOC? | No |
+| IRL? | No |
+| Latent objective? | No |
+| Learned cost? | No |
+| Human-to-robot transfer? | No |
+| Unitree H1? | No |
+| MPC + human objective? | No |
+| Generalization of human objective? | No |
+
+---
+
+### 27. Role in Our Project
+
+**Overall Role:**
+
+**Core Model-Based Control / MPC paper.**
+
+The paper establishes that practical humanoid MPC should consider not only the optimization objective but also:
+
+- feasibility,
+- stability,
+- disturbances,
+- and recovery.
+
+It therefore strengthens the model-based-control foundation of our project.
+
+---
+
+### 28. Final Takeaway
+
+The most important lesson for our project is:
+
+> A good objective alone is not enough. The controller must find a motion that is both desirable and physically feasible.
+
+Conceptually:
+
+    Learned Human Objective
+             +
+        H1 Dynamics
+             +
+        H1 Constraints
+             +
+         Feasibility
+             ↓
+            MPC
+             ↓
+        H1 Behavior
+
+The paper does not solve:
+
+    Human Motion
+          ↓
+    Human Objective
+
+but it strengthens:
+
+    Objective
+        +
+    Robot Physics
+        +
+    Constraints
+        +
+    Feasibility
+        ↓
+       MPC
+
+Therefore:
+
+**Status: Required**
+
+**Research-gap status: Not established yet**
+
+**Key contribution to our literature review:**
+
+This paper demonstrates that feasibility and robustness are fundamental components of practical humanoid MPC. It supports the idea that a learned human objective should ultimately be optimized subject to the physical dynamics, stability constraints, and feasibility of the H1 rather than being directly imposed as a human trajectory.
