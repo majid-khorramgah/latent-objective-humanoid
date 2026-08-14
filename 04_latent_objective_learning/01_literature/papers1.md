@@ -5056,3 +5056,721 @@ Therefore:
 **Key contribution to our literature review:**
 
 This paper demonstrates that feasibility and robustness are fundamental components of practical humanoid MPC. It supports the idea that a learned human objective should ultimately be optimized subject to the physical dynamics, stability constraints, and feasibility of the H1 rather than being directly imposed as a human trajectory.
+
+
+
+
+
+
+## Paper 18 — Molnar et al. (2025/2026)
+
+**Citation**  
+Molnar, L., Cheng, J., Fadini, G., Kang, D., Zargarbashi, F., & Coros, S. (2025). *Whole-Body Inverse Dynamics MPC for Legged Loco-Manipulation*. arXiv:2511.19709. Subsequently published in IEEE Robotics and Automation Letters, 11(1), 898–905, 2026. DOI: 10.1109/LRA.2025.3636005.
+
+**Literature Category**  
+Model-Based Control / Model Predictive Control (MPC) / Whole-Body Control / Inverse Dynamics / Torque-Level MPC / Legged Loco-Manipulation
+
+---
+
+### 1. Research Problem
+
+The paper investigates how a legged robot equipped with a manipulator can perform locomotion and manipulation simultaneously while maintaining physical consistency and stability.
+
+The central problem is:
+
+> How can locomotion, whole-body motion, and manipulation forces be optimized together inside a single model-based controller?
+
+This is difficult because the motion of one part of the robot affects the rest of the body.
+
+For example:
+
+    Arm pushes object
+          ↓
+    Reaction force changes body motion
+          ↓
+    Body motion affects balance
+          ↓
+    Legs must compensate
+          ↓
+    Whole body must coordinate
+
+The paper therefore proposes a whole-body MPC framework that directly reasons about the robot's full-body dynamics and control inputs.
+
+---
+
+### 2. Input
+
+The controller uses:
+
+- robot state,
+- robot dynamics,
+- desired base velocity,
+- desired end-effector velocity,
+- desired end-effector force,
+- contact schedule,
+- gait information,
+- actuator constraints,
+- whole-body dynamics.
+
+The implementation uses:
+
+- Pinocchio,
+- CasADi,
+- Fatrop.
+
+The method is evaluated on a Unitree B2 quadruped equipped with a Unitree Z1 manipulator arm.
+
+The hardware experiments achieve real-time MPC at approximately 80 Hz.
+
+Demonstrated tasks include:
+
+- pulling a 10 kg load,
+- pushing a box,
+- wiping a whiteboard,
+- whole-body loco-manipulation.
+
+---
+
+### 3. Method
+
+The paper proposes a **Whole-Body Inverse Dynamics Model Predictive Control** framework.
+
+Instead of controlling locomotion and manipulation through completely separate controllers, the optimization considers the whole robot simultaneously.
+
+Conceptually:
+
+    Whole Robot
+         ↓
+    Full-Order Dynamics
+         ↓
+    MPC
+         ↓
+    Joint Torques
+         ↓
+    Whole-Body Motion
+
+The MPC directly optimizes joint torques using the robot's full-order inverse dynamics.
+
+This allows motion and force generation to be handled together inside one predictive optimization layer.
+
+---
+
+### 4. Simple Explanation
+
+Imagine a robot wants to pull a heavy object.
+
+A naive controller might think:
+
+    "Move the arm."
+
+But if the arm pulls strongly:
+
+    Arm pulls object
+          ↓
+    Object pulls robot
+          ↓
+    Robot body moves
+          ↓
+    Robot may lose balance
+          ↓
+    Legs must react
+
+Therefore, the controller cannot think about the arm alone.
+
+It needs to think about:
+
+    Arm
+     +
+    Body
+     +
+    Legs
+     +
+    Contacts
+     +
+    Forces
+
+at the same time.
+
+The paper does this using whole-body MPC.
+
+---
+
+### 5. What Is Inverse Dynamics Here?
+
+Here, "inverse dynamics" has a different meaning from **Inverse Optimal Control (IOC)**.
+
+This distinction is extremely important.
+
+#### Inverse Dynamics
+
+Given:
+
+    Desired motion
+        +
+    Robot dynamics
+
+find:
+
+    Required forces / torques
+
+Conceptually:
+
+    Motion
+      +
+    Dynamics
+      ↓
+    Torques
+
+#### Inverse Optimal Control
+
+Given:
+
+    Observed motion
+
+infer:
+
+    Objective / Cost
+
+Conceptually:
+
+    Motion
+      ↓
+    Objective
+
+Therefore:
+
+**Inverse Dynamics ≠ Inverse Optimal Control**
+
+The word "inverse" is used in two completely different contexts.
+
+---
+
+### 6. Objective / Cost
+
+The objective is predefined.
+
+The paper does not infer a human objective.
+
+The optimization contains task-related tracking terms and regularization/control terms with tunable weights.
+
+Examples include objectives related to:
+
+- base velocity tracking,
+- end-effector velocity,
+- end-effector force,
+- control effort,
+- motion behavior,
+- gait-related objectives.
+
+Therefore:
+
+- Human objective learning: No
+- IOC: No
+- IRL: No
+- Latent objective learning: No
+- Learned reward: No
+
+The objective is specified by the designer.
+
+---
+
+### 7. Key Idea: Direct Torque Optimization
+
+A major feature of the method is that the MPC directly optimizes joint torques through full-order inverse dynamics.
+
+Conceptually:
+
+    Desired behavior
+          ↓
+        MPC
+          ↓
+    Joint torques
+          ↓
+    Robot dynamics
+          ↓
+    Whole-body motion
+
+This differs from architectures where a high-level MPC produces a trajectory and a separate low-level controller is responsible for converting that trajectory into torques.
+
+The paper aims to unify motion and force planning and execution within a single predictive layer.
+
+---
+
+### 8. Why Whole-Body Dynamics Matter
+
+A robot's joints and body are physically coupled.
+
+For example:
+
+    Move arm
+       ↓
+    Change momentum
+       ↓
+    Change body balance
+       ↓
+    Change ground reaction forces
+       ↓
+    Change leg behavior
+
+A whole-body dynamics model captures these interactions.
+
+This is especially useful for tasks where locomotion and manipulation happen simultaneously.
+
+---
+
+### 9. Validation
+
+The method is evaluated both in simulation and on physical hardware.
+
+The physical platform is:
+
+    Unitree B2
+        +
+    Unitree Z1 arm
+
+The MPC runs at approximately 80 Hz on hardware.
+
+The experiments include physically interactive tasks such as:
+
+- pulling a 10 kg load while maintaining locomotion,
+- pushing a box,
+- wiping a whiteboard,
+- interacting with the environment.
+
+These experiments demonstrate that the proposed whole-body MPC can generate physically consistent behavior in real time.
+
+---
+
+### 10. Main Finding
+
+The main finding is:
+
+> Whole-body inverse-dynamics MPC can directly coordinate locomotion, manipulation, forces, and joint torques while respecting the robot's physical dynamics and constraints.
+
+The paper demonstrates that a single predictive control layer can generate complex whole-body behaviors on real hardware.
+
+---
+
+### 11. Important Limitation: No Human Demonstrations
+
+The paper does not use human motion demonstrations to infer the objective.
+
+There is no:
+
+    Human Motion
+         ↓
+    Human Objective
+
+stage.
+
+Therefore, it does not address the central Phase 4 problem of our project.
+
+---
+
+### 12. Important Limitation: No IOC
+
+The word "Inverse Dynamics" in the title should not be confused with Inverse Optimal Control.
+
+The paper does NOT perform:
+
+    Observed Motion
+          ↓
+    Infer Cost
+
+Instead, it performs:
+
+    Robot Model
+        +
+    Desired Tasks
+        ↓
+       MPC
+        ↓
+    Robot Torques
+
+Therefore, it belongs to the **Model-Based Control / MPC** section of our literature review, not the IOC section.
+
+---
+
+### 13. Important Limitation: No Latent Objective
+
+The paper does not learn a latent objective representation.
+
+There is no:
+
+    Human Demonstrations
+          ↓
+       Latent z
+          ↓
+       Cost(z)
+          ↓
+         MPC
+
+The cost terms are designed by the researchers.
+
+Therefore, the objective-learning part of our project remains open.
+
+---
+
+### 14. Important Limitation: No Human-to-Humanoid Objective Transfer
+
+The paper does not investigate:
+
+    Human
+      ↓
+    Human Objective
+      ↓
+    Different Robot
+      ↓
+    Robot Behavior
+
+The robot behavior is generated from predefined task objectives.
+
+Therefore, it does not establish generalization of human objectives across different embodiments.
+
+---
+
+### 15. Important Limitation: Robot Platform
+
+The physical platform is a Unitree B2 quadruped equipped with a Z1 manipulator arm.
+
+It is not the Unitree H1 humanoid.
+
+Therefore:
+
+    Whole-Body Inverse-Dynamics MPC
+            ↓
+    Unitree B2 + Z1
+
+is experimentally demonstrated.
+
+But:
+
+    Whole-Body Inverse-Dynamics MPC
+            ↓
+    Unitree H1
+
+is not directly demonstrated by this paper.
+
+Nevertheless, the formulation is relevant to H1 because it is based on general robot dynamics and whole-body optimization rather than a morphology-specific human imitation method.
+
+---
+
+### 16. Relevance to Our Project
+
+**Relevance: High**
+
+The paper is highly relevant to the downstream model-based control stage.
+
+Our intended architecture is:
+
+    Human Demonstrations
+            ↓
+    Latent Human Objective
+            ↓
+    H1-Compatible Cost
+            +
+       H1 Dynamics
+            +
+       H1 Constraints
+            ↓
+    Whole-Body MPC
+            ↓
+       H1 Behavior
+
+Molnar et al. strongly support the idea that the objective can be combined with full-body robot dynamics and constraints inside a model-based predictive controller.
+
+However, they do not address the first step:
+
+    Human Demonstrations
+            ↓
+    Latent Human Objective
+
+---
+
+### 17. Relation to Zhang et al. (2025)
+
+Zhang et al. and Molnar et al. are related but focus on different aspects of model-based control.
+
+#### Zhang et al.
+
+Focus:
+
+    Whole-Body MPC
+          +
+    iLQR
+          ↓
+    Real-Time Legged/Humanoid Control
+
+Main lesson:
+
+> Whole-body model-based MPC can be implemented effectively in real time.
+
+#### Molnar et al.
+
+Focus:
+
+    Full-Order Dynamics
+          +
+    Inverse Dynamics
+          +
+    Torque-Level MPC
+          ↓
+    Whole-Body Loco-Manipulation
+
+Main lesson:
+
+> Motion and force generation can be unified in a whole-body torque-level MPC.
+
+Together, they show that model-based MPC can operate at increasingly detailed levels of the robot dynamics.
+
+---
+
+### 18. Relation to Scianca et al. (2025)
+
+Scianca et al. emphasize:
+
+    MPC
+      +
+    Feasibility
+      +
+    Stability
+      +
+    Recovery
+
+Molnar et al. emphasize:
+
+    MPC
+      +
+    Full-Order Dynamics
+      +
+    Torque Optimization
+      +
+    Whole-Body Coordination
+
+Together:
+
+    Learned / Designed Objective
+             +
+       Full-Body Dynamics
+             +
+          Constraints
+             +
+         Feasibility
+             ↓
+            MPC
+             ↓
+       Whole-Body Behavior
+
+This combination is conceptually close to the final control stage of our project.
+
+---
+
+### 19. Relation to Our Project
+
+The main conceptual connection is:
+
+    Human Objective
+          ↓
+    H1-Compatible Cost
+          ↓
+    Whole-Body MPC
+          ↓
+    H1 Dynamics
+          +
+    H1 Constraints
+          ↓
+    H1 Motion
+
+Molnar et al. demonstrate the bottom part:
+
+    Cost
+      +
+    Whole-Body Dynamics
+      +
+    Constraints
+      ↓
+    MPC
+      ↓
+    Robot Motion
+
+Our research question adds:
+
+    Human Demonstrations
+          ↓
+    Learned Objective
+
+before the MPC stage.
+
+---
+
+### 20. Important Research Insight
+
+This paper reinforces an important principle for our project:
+
+> The learned human objective does not need to specify the exact robot trajectory.
+
+Instead, the objective can specify what behavior is desirable.
+
+Then:
+
+    Learned Objective
+          ↓
+    H1 Dynamics
+          +
+    H1 Constraints
+          ↓
+    MPC
+          ↓
+    H1-specific motion
+
+This is one of the strongest reasons to investigate objective learning instead of direct trajectory imitation.
+
+---
+
+### 21. Research Gap Contribution
+
+This paper makes the following novelty claims insufficient:
+
+- "We use whole-body MPC."
+- "We use inverse-dynamics MPC."
+- "We optimize joint torques with MPC."
+- "We combine locomotion and manipulation in MPC."
+- "We enforce robot dynamics and constraints in MPC."
+
+These capabilities are already demonstrated.
+
+Therefore, our project should NOT claim novelty from simply implementing whole-body inverse-dynamics MPC.
+
+A potentially interesting research direction remains:
+
+    Human Demonstrations
+          ↓
+    Learned Human Objective
+          ↓
+    Whole-Body Model-Based MPC
+          ↓
+    Different Robot Dynamics
+          ↓
+    Generalizable Behavior
+
+However:
+
+**Whether this constitutes a genuine research gap is NOT ESTABLISHED YET.**
+
+The remaining literature on objective learning and human-to-robot transfer must be considered before making a final novelty claim.
+
+---
+
+### 22. Project Management Decision
+
+**Status: Useful**
+
+Reason:
+
+The paper provides a strong modern example of whole-body model-based MPC with full-order dynamics, torque-level optimization, physical constraints, and real-time hardware execution.
+
+However, it is not directly about human objective learning.
+
+Therefore, it should support our understanding of the downstream controller but should not cause the project scope to expand.
+
+We do NOT need to:
+
+- build a new inverse-dynamics MPC from scratch,
+- switch to a quadruped platform,
+- add loco-manipulation to the project,
+- or make manipulation part of the research question.
+
+Our project remains focused on humanoid locomotion and learned human objectives.
+
+---
+
+### 23. Position in Our Literature Review
+
+| Question | Molnar et al. (2025/2026) |
+|---|---|
+| Model-based control? | Yes |
+| MPC? | Yes |
+| Whole-body control? | Yes |
+| Full-order dynamics? | Yes |
+| Inverse dynamics? | Yes |
+| Torque-level optimization? | Yes |
+| Physical constraints? | Yes |
+| Real-time hardware? | Yes |
+| Loco-manipulation? | Yes |
+| Unitree robot? | Yes |
+| Unitree H1? | No |
+| Human demonstrations? | No |
+| Human objective learning? | No |
+| IOC? | No |
+| IRL? | No |
+| Latent objective? | No |
+| Learned cost? | No |
+| Human-to-robot transfer? | No |
+| Generalization across embodiments? | No |
+| MPC + human objective? | No |
+
+---
+
+### 24. Role in Our Project
+
+**Overall Role:**
+
+**Modern Whole-Body Model-Based MPC reference.**
+
+The paper demonstrates that a robot's full-order dynamics, physical constraints, joint torques, and task objectives can be integrated into a single predictive control framework.
+
+For our project, it provides evidence for the downstream architecture:
+
+    Learned Objective
+          +
+    Robot Dynamics
+          +
+    Robot Constraints
+          ↓
+    Whole-Body MPC
+          ↓
+    Robot Behavior
+
+It does not address how the objective should be learned from human demonstrations.
+
+---
+
+### 25. Final Takeaway
+
+The most important lesson for our project is:
+
+> The objective tells the robot what behavior is desirable, while the robot's own dynamics and constraints determine how that behavior can physically be achieved.
+
+This gives us the conceptual architecture:
+
+    Human Demonstrations
+            ↓
+    Learn Human Objective
+            ↓
+    H1-Compatible Objective
+            ↓
+    H1 Dynamics
+            +
+    H1 Constraints
+            ↓
+    Whole-Body MPC
+            ↓
+       H1 Behavior
+
+Molnar et al. strongly support the bottom half of this architecture.
+
+The unresolved research problem remains the top half:
+
+    Human Motion
+          ↓
+    Latent Human Objective
+          ↓
+    Transfer to H1
+
+**Status: Useful**
+
+**Research-gap status: Not established yet**
+
+**Key contribution to our literature review:**
+
+This paper provides a strong modern example of whole-body inverse-dynamics MPC that directly optimizes joint torques using full-order robot dynamics and physical constraints. It demonstrates real-time whole-body control on a Unitree B2 + Z1 platform, but does not learn objectives from human demonstrations or study human-to-humanoid objective transfer.
