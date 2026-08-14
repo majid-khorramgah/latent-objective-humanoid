@@ -6450,3 +6450,616 @@ Therefore:
 **Key contribution to our literature review:**
 
 ARTEMIS demonstrates a real full-sized humanoid platform from RoMeLa using model-based control for dynamic walking and running. It establishes strong prior art for real-world model-based humanoid locomotion and therefore prevents us from claiming that model-based humanoid control itself is novel. The potentially novel part of our project must instead be investigated around learning and transferring human objectives.
+
+
+
+
+
+
+
+
+## Paper 20 — Tanaka et al. (2025)
+
+**Citation**  
+Tanaka, Y., Zhu, A., Wang, Q., Liu, Y., & Hong, D. W. (2025). *Mechanical Intelligence-Aware Curriculum RL for Humanoids*. Proceedings of the 2025 IEEE-RAS 24th International Conference on Humanoid Robots (Humanoids), 882–889. DOI: 10.1109/HUMANOIDS65713.2025.11203130.
+
+**Literature Category**  
+RoMeLa / Dennis Hong / Humanoid Locomotion / Reinforcement Learning / Robot-Specific Dynamics / Curriculum RL
+
+---
+
+### 1. Research Problem
+
+The paper studies how to train a humanoid robot to perform locomotion using Reinforcement Learning (RL) when the robot has complex mechanical structures.
+
+The central problem is:
+
+> How can RL successfully learn humanoid locomotion when the robot's real mechanical structure contains complex mechanisms that are difficult to model or simulate accurately?
+
+The authors focus on the BRUCE humanoid robot, whose legs contain complex closed-chain mechanisms.
+
+The key idea is that the mechanical structure of the robot should be represented accurately during simulation and learning rather than being replaced by an overly simplified model.
+
+---
+
+### 2. Input
+
+The learning system uses:
+
+- robot state,
+- robot dynamics,
+- robot mechanical structure,
+- proprioceptive information,
+- locomotion-related observations,
+- simulated environments,
+- curriculum learning environments.
+
+The robot used in the study is BRUCE, a humanoid robot with complex leg mechanisms.
+
+The authors model the robot's closed-chain mechanisms directly in MuJoCo/MJX.
+
+Therefore:
+
+- Humanoid robot: Yes
+- Complex robot mechanics: Yes
+- Locomotion: Yes
+- RL: Yes
+- Curriculum learning: Yes
+- Real robot validation: Yes
+- Human demonstrations: No
+- Human motion objective inference: No
+- IOC: No
+- IRL: No
+- Latent objective learning: No
+- Human-to-robot objective transfer: No
+- Unitree H1: No
+
+---
+
+### 3. Method
+
+The main approach combines:
+
+1. Accurate modeling of the robot's mechanical structure.
+2. Reinforcement Learning.
+3. Curriculum learning.
+4. Simulation in MuJoCo/MJX.
+5. Sim-to-real transfer.
+6. Comparison with model-based MPC.
+
+The basic pipeline is:
+
+    Accurate Robot Model
+            ↓
+    Curriculum RL
+            ↓
+    Locomotion Policy
+            ↓
+       Real Robot
+
+The authors argue that accurately representing the robot's mechanical structure is important for successful learning.
+
+---
+
+### 4. Simple Explanation
+
+Imagine we have a humanoid robot whose leg contains several interconnected mechanisms.
+
+If we simplify the robot too much in simulation:
+
+    Real Robot
+       ≠
+    Simulation Robot
+
+Then RL learns how to control the wrong robot.
+
+The policy may work in simulation but fail on the real robot.
+
+The paper therefore tries to make:
+
+    Simulation Robot
+          ≈
+    Real Robot
+
+by explicitly modeling the robot's complex mechanical structure.
+
+Then RL learns walking behavior using this more realistic model.
+
+---
+
+### 5. What Is Curriculum RL?
+
+Instead of asking the robot to solve the hardest locomotion problem immediately, training starts with easier problems.
+
+For example:
+
+    Easy Terrain
+        ↓
+    Slightly Harder Terrain
+        ↓
+    More Difficult Conditions
+        ↓
+    Robust Locomotion
+
+The difficulty is gradually increased.
+
+This is called curriculum learning.
+
+The idea is similar to teaching a human:
+
+> First learn to stand, then walk, then deal with harder conditions.
+
+The difference is that the robot learns through repeated interaction with the environment.
+
+---
+
+### 6. Objective / Reward
+
+The paper uses predefined RL objectives/rewards for locomotion.
+
+The reward is designed by the researchers rather than inferred from human demonstrations.
+
+Conceptually:
+
+    Robot State
+        ↓
+    Hand-Designed Reward
+        ↓
+    RL
+        ↓
+    Locomotion Policy
+
+Therefore:
+
+**The paper does NOT learn the underlying human objective.**
+
+This distinction is essential for our project.
+
+Our proposed direction is:
+
+    Human Demonstrations
+            ↓
+    Infer Human Objective
+            ↓
+    Learned Objective
+            ↓
+    Model-Based MPC
+            ↓
+    H1 Motion
+
+Tanaka et al. instead use:
+
+    Designed Reward
+          ↓
+         RL
+          ↓
+    Robot Policy
+
+---
+
+### 7. Model-Based MPC Comparison
+
+An important aspect of the paper for our literature review is that the learned RL policy is compared with model-based MPC.
+
+This is useful because it provides evidence that RL and MPC can be viewed as different approaches to humanoid locomotion.
+
+A simplified comparison is:
+
+    RL:
+
+    Reward
+      ↓
+    Policy Learning
+      ↓
+    Neural Policy
+      ↓
+    Robot Action
+
+
+    MPC:
+
+    Objective
+      +
+    Robot Dynamics
+      +
+    Constraints
+      ↓
+    Online Optimization
+      ↓
+    Robot Action
+
+Our project is closer to the second architecture, but with an important additional step:
+
+    Human Demonstrations
+          ↓
+    Learn Objective
+          ↓
+    MPC
+          ↓
+    H1
+
+---
+
+### 8. Validation
+
+The method is evaluated in simulation and on the physical BRUCE humanoid.
+
+The paper demonstrates that the learned policy can perform humanoid locomotion and transfer from simulation to the real robot.
+
+The work also evaluates locomotion under different conditions and compares the RL approach with model-based MPC.
+
+The experiments therefore provide evidence that:
+
+> Accurate robot-specific modeling combined with curriculum RL can produce practical humanoid locomotion.
+
+---
+
+### 9. Main Finding
+
+The main finding is:
+
+> Accurate representation of a humanoid's mechanical structure can improve RL-based locomotion learning and sim-to-real transfer, even when the robot contains complex closed-chain mechanisms.
+
+The work demonstrates that RL can successfully learn locomotion when the simulation captures the important mechanical characteristics of the real robot.
+
+---
+
+### 10. Important Limitation: No Human Demonstrations
+
+The method does not use human demonstrations to infer the objective.
+
+There is no:
+
+    Human Motion
+          ↓
+    Human Objective
+
+stage.
+
+Therefore, it does not answer the central Phase 4 question:
+
+> What objective is actually responsible for the observed human locomotion?
+
+---
+
+### 11. Important Limitation: Reward Is Designed by the Researcher
+
+The reward is specified by the researchers.
+
+Conceptually:
+
+    Researcher
+        ↓
+    Define Reward
+        ↓
+        RL
+        ↓
+      Policy
+
+This is fundamentally different from our proposed direction:
+
+    Human Demonstrations
+          ↓
+    Infer Objective
+          ↓
+    Objective
+          ↓
+        MPC
+
+Therefore, the paper does not solve the objective-learning problem.
+
+---
+
+### 12. Important Limitation: No Human-to-Robot Objective Transfer
+
+The paper does not investigate whether an objective learned from humans can be transferred to a different robot.
+
+There is no:
+
+    Human
+      ↓
+    Objective
+      ↓
+    Robot A
+      ↓
+    Robot B
+
+transfer experiment.
+
+The policy is learned specifically for the target robot and its dynamics.
+
+---
+
+### 13. Important Limitation: No Latent Human Objective
+
+The paper does not learn a latent representation such as:
+
+    Human Demonstrations
+            ↓
+          latent z
+            ↓
+        Objective
+
+Instead, the researchers define the reward and RL learns a policy.
+
+Therefore, this paper does not directly contribute to latent objective representation learning.
+
+---
+
+### 14. Important Lesson About Morphology
+
+This paper provides an important correction to an overly strong assumption about RL.
+
+It would be incorrect to claim:
+
+> RL cannot work when robot morphology differs from the human.
+
+This paper shows that RL can work very well on a specific humanoid when the robot's mechanical structure and dynamics are modeled appropriately.
+
+Therefore:
+
+    RL
+    ≠
+    Automatically fails because of morphology
+
+A more accurate statement is:
+
+> Robot-specific RL can successfully learn locomotion when the robot's dynamics, mechanics, and training environment are sufficiently well represented.
+
+The remaining question for our project is different:
+
+> Can an objective learned from human behavior provide a more transferable representation than directly learning a robot-specific policy?
+
+This question is **NOT ESTABLISHED YET** as a research gap.
+
+---
+
+### 15. Relevance to Our Project
+
+**Relevance: High, but indirect.**
+
+The paper is relevant because it demonstrates:
+
+- modern humanoid RL,
+- robot-specific dynamics,
+- accurate mechanical modeling,
+- curriculum learning,
+- sim-to-real transfer,
+- comparison with MPC,
+- real humanoid locomotion,
+- work from the RoMeLa research direction.
+
+However, it does not demonstrate:
+
+- human objective learning,
+- IOC,
+- IRL,
+- latent objective inference,
+- cross-embodiment objective transfer,
+- human-to-H1 transfer.
+
+Therefore, it provides important background for the **control and RoMeLa side** of our project, but not direct evidence for the core Phase 4 objective-learning problem.
+
+---
+
+### 16. Relation to Professor Hong's Suggested Direction
+
+Professor Hong suggested:
+
+    Human Demonstrations
+            ↓
+    Learn Underlying Objective
+            ↓
+    Model-Based MPC
+            ↓
+    Robot Dynamics + Constraints
+
+Tanaka et al. mainly address a different path:
+
+    Robot Model
+          ↓
+    Curriculum RL
+          ↓
+    Robot Policy
+          ↓
+    Humanoid Locomotion
+
+The two approaches meet at the robot-control level but differ in where the objective comes from.
+
+Our project asks whether the objective can be obtained from human demonstrations rather than manually designed.
+
+---
+
+### 17. Relation to ARTEMIS
+
+Tanaka et al. and Zhu, Ahn & Hong (2025) are complementary.
+
+**ARTEMIS:**
+
+    Full-Sized Humanoid
+          +
+    Model-Based Control
+          ↓
+    Dynamic Locomotion
+
+**Tanaka et al.:**
+
+    Accurate Mechanical Model
+          +
+    Curriculum RL
+          ↓
+    Humanoid Locomotion
+
+Together they show that RoMeLa investigates both model-based and learning-based approaches to humanoid locomotion.
+
+This makes it even more important that our project clearly identifies its contribution rather than simply combining "humanoid + RL" or "humanoid + MPC."
+
+---
+
+### 18. Research Gap Contribution
+
+This paper makes the following claims insufficient as novelty:
+
+- Using RL for humanoid locomotion.
+- Using curriculum RL for humanoid locomotion.
+- Using realistic robot dynamics in RL.
+- Modeling complex humanoid mechanisms.
+- Performing sim-to-real locomotion.
+- Comparing RL with MPC.
+
+These have already been investigated.
+
+A potentially interesting research direction remains:
+
+    Human Demonstrations
+          ↓
+    Learn Generalizable Objective
+          ↓
+    Different Robot Dynamics
+          ↓
+    Model-Based Control
+          ↓
+    Robot-Specific Motion
+
+However:
+
+**Whether this represents a genuine research gap is NOT ESTABLISHED YET.**
+
+The remaining literature must determine whether previous work has already demonstrated this type of objective-level transfer.
+
+---
+
+### 19. What This Paper Does NOT Establish
+
+The paper does not establish that:
+
+1. Human locomotion is generated by the reward used in the experiments.
+2. The selected RL reward represents the true human objective.
+3. Human motion can be explained by the learned policy.
+4. The reward can transfer to another humanoid.
+5. A latent human objective is more generalizable than a robot-specific policy.
+6. Objective learning is superior to trajectory imitation.
+7. A learned human objective can be used directly inside MPC.
+8. The approach will work on Unitree H1.
+
+These remain open questions for our project.
+
+---
+
+### 20. Project Management Decision
+
+**Status: Required**
+
+**Reason:**
+
+The paper is directly relevant to:
+
+- RoMeLa / Dennis Hong,
+- humanoid locomotion,
+- modern RL,
+- robot-specific dynamics,
+- sim-to-real,
+- RL versus MPC.
+
+However, we do NOT need to expand the project to reproduce this RL system.
+
+We should NOT add:
+
+- a new RL pipeline,
+- curriculum RL as a main method,
+- BRUCE,
+- complex closed-chain mechanisms,
+- or a second robot.
+
+Our target remains:
+
+    Human Demonstrations
+            ↓
+    Latent Human Objective
+            ↓
+    H1 Dynamics + Constraints
+            ↓
+    Model-Based MPC
+            ↓
+    Generalizable H1 Behavior
+
+RL can remain a comparison/baseline only if later experiments show that such a comparison is necessary.
+
+---
+
+### 21. Position in Our Literature Review
+
+| Question | Tanaka et al. (2025) |
+|---|---|
+| Humanoid locomotion? | Yes |
+| RL? | Yes |
+| Curriculum learning? | Yes |
+| Robot-specific dynamics? | Yes |
+| Complex mechanical modeling? | Yes |
+| Sim-to-real? | Yes |
+| Real robot? | Yes |
+| MPC comparison? | Yes |
+| RoMeLa? | Yes |
+| Dennis Hong? | Yes |
+| Human demonstrations? | No |
+| Human locomotion objective? | No |
+| IOC? | No |
+| IRL? | No |
+| Human objective learning? | No |
+| Latent objective? | No |
+| Human-to-robot transfer? | No |
+| Cross-embodiment objective transfer? | No |
+| Unitree H1? | No |
+| Learned human objective + MPC? | No |
+
+---
+
+### 22. Role in Our Project
+
+**Overall Role:**
+
+**Important RoMeLa / humanoid RL reference and RL-vs-MPC comparison.**
+
+The paper demonstrates that modern RL can successfully learn humanoid locomotion when the robot's actual mechanical structure and dynamics are represented accurately.
+
+It also prevents us from making the overly broad claim that RL inherently fails because of differences in robot morphology.
+
+The relevant distinction for our project is not simply:
+
+    RL vs MPC
+
+but rather:
+
+    Robot-Specific Policy Learning
+              vs.
+    Human-Objective Learning
+              +
+    Robot-Specific Model-Based Optimization
+
+---
+
+### 23. Final Takeaway
+
+The most important lesson for our project is:
+
+> RL can successfully learn locomotion for a specific humanoid when the robot's mechanics and dynamics are modeled appropriately.
+
+Therefore, our research question should not be:
+
+> "Can RL control a humanoid?"
+
+That question is already well established.
+
+Instead, the interesting question remains:
+
+> **Can a human-level objective learned from demonstrations provide a more generalizable representation of behavior that can then be optimized under the dynamics and constraints of a different humanoid robot?**
+
+For our project:
+
+**Status: Required**
+
+**Research-gap status: Not established yet**
+
+**Main contribution to the literature review:**
+
+Tanaka et al. establish strong prior art for robot-specific curriculum RL and accurate mechanical modeling in humanoid locomotion. They show that RL can successfully handle complex humanoid mechanics and transfer from simulation to real hardware. However, the reward is designed by the researcher rather than inferred from human demonstrations, and no latent human objective or cross-embodiment objective transfer is studied. Therefore, the paper strengthens the motivation for clearly separating **reward/policy learning for a specific robot** from **human objective learning for subsequent model-based optimization**.
