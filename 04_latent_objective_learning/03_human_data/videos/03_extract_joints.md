@@ -1,431 +1,796 @@
-# SMPL-X Joint Structure, Canonical Representation and Extraction Specification
+# SMPL-X Joint Structure and Extraction Specification
 
-**Project:** `latent-objective-humanoid`
-
-**Stage:** `03_human_motion`
-
-**Stage 3 Script:** [`03_extract_joints.py`](./03_extract_joints.py)
-
-**Purpose:** Definitive documentation of the SMPL-X joint structure used by the project, the construction of the 127-joint output, the kinematic hierarchy, and the project-specific extraction policy.
+**Project:** `latent-objective-humanoid`  
+**Stage:** `03_human_motion`  
+**Document:** SMPL-X 127-Joint Canonical Representation and Joint Extraction Policy  
+**Status:** Reference / Implementation Specification  
+**Last Updated:** 2026-08-15
 
 ---
 
-# 1. Stage 3 — Joint Extraction
+# 0. Project References
 
-The implementation responsible for extracting project-specific joint representations is:
+## Video / Research Reference
 
-[`03_extract_joints.py`](./03_extract_joints.py)
+[YouTube Video – SMPL-X / Human Motion Processing](https://youtu.be/Pw4jINaFT_M)
 
-Stage 3 is **not responsible for reconstructing SMPL-X**.
+## Stage 3
 
-Its responsibility is to take the already reconstructed canonical SMPL-X representation and derive different views from it.
+**Stage 3 — Human Motion / Joint Extraction**
 
-The conceptual responsibility is:
+Project location:
 
-    Canonical SMPL-X 127
-            |
-            +-------------------+
-            |                   |
-            v                   v
-        Core Body            Auxiliary
-                                |
-                +---------------+---------------+
-                |               |               |
-                v               v               v
-              Hands           Feet            Face
+```text
+03_human_motion/
+```
 
-The important principle is:
+The purpose of this stage is to take the canonical SMPL-X reconstruction and generate deterministic downstream representations such as:
 
-    Reconstruction preserves information.
-    Extraction selects information.
+```text
+SMPL-X 127
+    |
+    +--> Core Body
+    +--> Hands
+    +--> Feet
+    +--> Face
+    |
+    v
+Normalization
+    |
+    v
+Feature Extraction
+    |
+    v
+Contact Detection
+    |
+    v
+Motion Segmentation
+    |
+    v
+Dataset Creation
+    |
+    v
+Latent Objective Learning
+```
 
-Therefore Stage 3 must never destroy the canonical 127-joint representation.
-
----
-
-# 2. Overall Motion Pipeline
-
-The current project architecture is:
-
-    AMASS
-      |
-      v
-    SMPL-X Reconstruction
-      |
-      v
-    SMPL-X 127 canonical joints
-      |
-      +-------------------+-------------------+
-      |                   |                   |
-      v                   v                   v
-    Body                Hands               Face
-      |
-      v
-    Core Body
-      |
-      v
-    Normalization
-      |
-      v
-    Feature Extraction
-      |
-      v
-    Contact Detection
-      |
-      v
-    Motion Segmentation
-      |
-      v
-    Dataset Creation
-      |
-      v
-    Latent Objective Learning
-
-Feet are maintained as a separate representation because they are especially important for contact detection and locomotion.
-
-The detailed structure is therefore:
-
-    SMPL-X 127
-        |
-        +--> Core Body
-        |
-        +--> Hands
-        |
-        +--> Feet
-        |
-        +--> Face
-
-This allows future stages to combine these representations when necessary.
+The canonical 127-joint representation must be preserved so that downstream representations can be changed later without repeating the expensive SMPL-X reconstruction.
 
 ---
 
-# 3. Main Design Decision
+# 1. Final Architectural Decision
 
-The project will use:
+The project uses the following architecture:
 
-    SMPL-X 127 joints
+```text
+                         AMASS
+                           |
+                           v
+                  SMPL-X Reconstruction
+                           |
+                           v
+                    SMPL-X 127 joints
+                           |
+             +-------------+-------------+
+             |             |             |
+             v             v             v
+          Core Body      Hands         Face
+             |
+             v
+       Main Body Skeleton
+             |
+             v
+       Normalization
+             |
+             v
+       Feature Extraction
+             |
+             v
+       Contact Detection
+             |
+             v
+       Motion Segmentation
+             |
+             v
+       Dataset Creation
+             |
+             v
+       Latent Objective Learning
+```
 
-as the **canonical reconstructed representation**.
+The important design principle is:
 
-No information is discarded during reconstruction.
+```text
+127 joints = canonical representation
 
-The canonical representation can later be transformed into:
+Core / Hands / Feet / Face
+    = derived representations
+```
 
-    127 -> Core Body
-    127 -> Hands
-    127 -> Feet
-    127 -> Face
-    127 -> Full Body + Hands
-    127 -> Full Body + Feet
-    127 -> Custom representation
+We do NOT permanently reduce:
 
-This is intentionally designed so that future research decisions do not require rerunning SMPL-X reconstruction.
+```text
+127 -> 24
+```
+
+during reconstruction.
+
+Instead:
+
+```text
+127 -> Core
+127 -> Hands
+127 -> Feet
+127 -> Face
+127 -> Custom representation
+```
+
+can all be generated later.
+
+---
+
+# 2. Why the Canonical 127 Representation Is Preserved
+
+The reconstruction stage contains more information than the main body-motion model may currently need.
+
+For example:
+
+```text
+finger joints
+finger tips
+toe points
+heel points
+jaw
+eyes
+nose
+ears
+facial landmarks
+```
+
+may not be required for the first version of the latent objective.
+
+However, deleting them permanently would prevent future experiments.
+
+Therefore:
+
+```text
+KEEP EVERYTHING AT RECONSTRUCTION TIME
+```
+
+and perform reduction only when creating a specific downstream representation.
+
+This gives us:
+
+```text
+One expensive reconstruction
+        |
+        +--> many possible representations
+```
+
+instead of:
+
+```text
+One reconstruction
+        |
+        +--> information permanently lost
+```
+
+---
+
+# 3. SMPL-X Model Configuration
+
+The SMPL-X model used by this project is located at:
+
+```text
+03_human_motion/external/smplx/models
+```
+
+The Python repository is located at:
+
+```text
+03_human_motion/external/smplx/smplx_repository
+```
+
+The model is loaded using:
+
+```python
+import smplx
+
+model_path = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
+
+model = smplx.create(
+    model_path,
+    model_type="smplx",
+    gender="neutral",
+    num_betas=16,
+    use_pca=False,
+    ext="npz",
+)
+```
+
+The actual neutral model file is:
+
+```text
+03_human_motion/external/smplx/models/smplx/SMPLX_NEUTRAL.npz
+```
 
 ---
 
 # 4. Important Discovery: 54 vs 55 vs 127
 
-Several different numbers appear in the SMPL-X implementation.
+One of the most important findings is that the following numbers are different:
 
-They must not be confused.
+```text
+NUM_JOINTS = 54
 
-The loaded model reports:
+J_regressor = 55 × 10475
 
-    m.NUM_JOINTS == 54
+Final output = 127 × 3
+```
 
-but:
+These numbers must NOT be treated as equivalent.
 
-    m.J_regressor.shape == (55, 10475)
+The following command was executed:
 
-and:
+```python
+import smplx
 
-    m().joints.shape == (1, 127, 3)
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
 
-These numbers represent different concepts.
+m = smplx.create(
+    p,
+    model_type="smplx",
+    gender="neutral",
+    num_betas=16,
+    use_pca=False,
+    ext="npz",
+)
 
-The actual final output is constructed as:
+o = m()
 
-    55 LBS joints
-    + 21 extra vertex-based joints
-    + 51 facial landmarks
-    --------------------------------
-    127 final output joints
+print("NUM_JOINTS:", m.NUM_JOINTS)
+print("J_regressor:", m.J_regressor.shape)
+print("output:", o.joints.shape)
+```
+
+Observed:
+
+```text
+NUM_JOINTS: 54
+J_regressor: torch.Size([55, 10475])
+output: torch.Size([1, 127, 3])
+```
+
+The apparent discrepancy is caused by the way SMPL-X constructs the final output.
+
+---
+
+# 5. Construction of the 127 Output Joints
+
+The SMPL-X forward pass was inspected in:
+
+```text
+03_human_motion/external/smplx/smplx_repository/smplx/body_models.py
+```
+
+The relevant implementation is:
+
+```python
+vertices, joints = lbs(
+    shape_components,
+    full_pose,
+    self.v_template,
+    shapedirs,
+    self.posedirs,
+    self.J_regressor,
+    self.parents,
+    self.lbs_weights,
+    pose2rot=pose2rot,
+)
+
+joints = self.vertex_joint_selector(vertices, joints)
+
+joints = torch.cat([joints, landmarks], dim=1)
+
+if self.joint_mapper is not None:
+    joints = self.joint_mapper(
+        joints=joints,
+        vertices=vertices
+    )
+```
+
+Therefore the final output is constructed as:
+
+```text
+LBS joints
+    +
+Extra vertex joints
+    +
+Facial landmarks
+    =
+Final joints
+```
+
+Specifically:
+
+```text
+55 LBS joints
++
+21 extra vertex joints
++
+51 facial landmarks
+=
+127 joints
+```
 
 Therefore:
 
-    55 + 21 + 51 = 127
-
-The final tensor is:
-
-    [batch_size, 127, 3]
-
-The runtime output tensor is the authoritative representation for the final joint count.
+```text
+55 + 21 + 51 = 127
+```
 
 ---
 
-# 5. Model Configuration
+# 6. Stage A — LBS Joints
 
-The SMPL-X model used by the project is located at:
+The model contains:
 
-    03_human_motion/external/smplx/models
+```text
+J_regressor.shape = (55, 10475)
+```
 
-The Python repository is located at:
+Therefore the LBS stage produces:
 
-    03_human_motion/external/smplx/smplx_repository
+```text
+55 joints
+```
 
-The model is loaded using:
+These form the SMPL-X kinematic skeleton.
 
-    import smplx
+Their hierarchy is defined by:
 
-    model_path = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
+```text
+kintree_table
+parents
+```
 
-    model = smplx.create(
-        model_path,
-        model_type="smplx",
-        gender="neutral",
-        num_betas=16,
-        use_pca=False,
-        ext="npz",
-    )
+and their names are defined by:
 
-The actual neutral model file is:
+```text
+joint2num
+```
 
-    03_human_motion/external/smplx/models/smplx/SMPLX_NEUTRAL.npz
+in the model file.
 
 ---
 
-# 6. Verification of the Final Output
+# 7. Stage B — Extra Vertex-Based Joints
+
+The `VertexJointSelector` adds:
+
+```text
+21 extra joints
+```
+
+These are not regressed kinematic joints.
+
+They are selected directly from mesh vertices.
+
+They consist of:
+
+```text
+5 face keypoints
+6 foot keypoints
+10 hand fingertip keypoints
+```
+
+Therefore:
+
+```text
+55 + 21 = 76
+```
+
+---
+
+# 8. Stage C — Facial Landmarks
+
+The model contains:
+
+```text
+51 facial landmarks
+```
+
+They are generated using:
+
+```python
+landmarks = vertices2landmarks(
+    vertices,
+    self.faces_tensor,
+    lmk_faces_idx,
+    lmk_bary_coords,
+)
+```
+
+The landmarks are then appended:
+
+```python
+joints = torch.cat([joints, landmarks], dim=1)
+```
+
+Therefore:
+
+```text
+76 + 51 = 127
+```
+
+---
+
+# 9. Final Output Structure
+
+The final SMPL-X output is:
+
+```text
+[batch_size, 127, 3]
+```
+
+For a batch size of one:
+
+```text
+[1, 127, 3]
+```
+
+The output consists of:
+
+```text
+0 ... 54
+    55 LBS / kinematic joints
+
+55 ... 75
+    21 extra vertex-based keypoints
+
+76 ... 126
+    51 facial landmarks
+```
+
+---
+
+# 10. Model File Inspection
+
+The model file was inspected with:
+
+```python
+import numpy as np
+
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
+
+d = np.load(p, allow_pickle=True)
+
+print(d.files)
+```
+
+The observed keys were:
+
+```text
+[
+    'bs_type',
+    'bs_style',
+    'J_regressor_prior',
+    'f',
+    'J_regressor',
+    'kintree_table',
+    'J',
+    'weights_prior',
+    'weights',
+    'vert_sym_idxs',
+    'posedirs',
+    'v_template',
+    'shapedirs',
+    'hands_meanr',
+    'hands_meanl',
+    'lmk_bary_coords',
+    'vt',
+    'part2num',
+    'hands_coeffsr',
+    'lmk_faces_idx',
+    'dynamic_lmk_faces_idx',
+    'hands_componentsr',
+    'dynamic_lmk_bary_coords',
+    'ft',
+    'hands_componentsl',
+    'joint2num',
+    'allow_pickle',
+    'hands_coeffsl'
+]
+```
+
+---
+
+# 11. Model Shape Verification
 
 The following command was used:
 
-    import smplx
+```python
+import numpy as np
 
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
 
-    m = smplx.create(
-        p,
-        model_type="smplx",
-        gender="neutral",
-        num_betas=16,
-        use_pca=False,
-        ext="npz",
-    )
+d = np.load(p, allow_pickle=True)
 
-    o = m()
+print("J_regressor shape:", d["J_regressor"].shape)
+print("J shape:", d["J"].shape)
+print("lmk_faces_idx shape:", d["lmk_faces_idx"].shape)
+print("dynamic_lmk_faces_idx shape:", d["dynamic_lmk_faces_idx"].shape)
+```
 
-    print("NUM_JOINTS:", m.NUM_JOINTS)
-    print("J_regressor:", m.J_regressor.shape)
-    print("selector:", len(m.vertex_joint_selector.extra_joints_idxs))
-    print("landmarks:", len(m.lmk_faces_idx))
-    print("output:", o.joints.shape)
+Observed:
 
-Expected result:
-
-    NUM_JOINTS: 54
-    J_regressor: torch.Size([55, 10475])
-    selector: 21
-    landmarks: 51
-    output: torch.Size([1, 127, 3])
+```text
+J_regressor shape: (55, 10475)
+J shape: (55, 3)
+lmk_faces_idx shape: (51,)
+dynamic_lmk_faces_idx shape: (79, 17)
+```
 
 ---
 
-# 7. How the 127 Joints Are Constructed
+# 12. Kinematic Joint Mapping
 
-The relevant SMPL-X forward-pass code is located in:
+The model contains:
 
-    03_human_motion/external/smplx/smplx_repository/smplx/body_models.py
+```text
+joint2num
+```
 
-The important part is:
+which maps names to numerical indices.
 
-    vertices, joints = lbs(
-        shape_components,
-        full_pose,
-        self.v_template,
-        shapedirs,
-        self.posedirs,
-        self.J_regressor,
-        self.parents,
-        self.lbs_weights,
-        pose2rot=pose2rot,
-    )
+The complete mapping is:
 
-    joints = self.vertex_joint_selector(vertices, joints)
+```text
+Pelvis       = 0
 
-    joints = torch.cat([joints, landmarks], dim=1)
+L_Hip        = 1
+R_Hip        = 2
 
-Therefore the construction is:
+Spine1       = 3
 
-    SMPL-X parameters
-          |
-          v
-    LBS
-          |
-          +--> 55 joints
-          |
-          v
-    VertexJointSelector
-          |
-          +--> 21 extra joints
-          |
-          v
-    Facial landmark extraction
-          |
-          +--> 51 landmarks
-          |
-          v
-    Final output
-          |
-          v
-    127 joints
+L_Knee       = 4
+R_Knee       = 5
 
-Mathematically:
+Spine2       = 6
 
-    J_final = concat(J_LBS, J_extra, J_landmarks)
+L_Ankle      = 7
+R_Ankle      = 8
 
-where:
+Spine3       = 9
 
-    J_LBS       = 55 x 3
-    J_extra     = 21 x 3
-    J_landmarks = 51 x 3
+L_Foot       = 10
+R_Foot       = 11
 
-and:
+Neck         = 12
 
-    J_final     = 127 x 3
+L_Collar     = 13
+R_Collar     = 14
 
----
+Head         = 15
 
-# 8. Canonical 127-Joint Index Ranges
+L_Shoulder   = 16
+R_Shoulder   = 17
 
-The final output is organized as:
+L_Elbow      = 18
+R_Elbow      = 19
 
-    0 ... 54
-        55 LBS / kinematic joints
+L_Wrist      = 20
+R_Wrist      = 21
 
-    55 ... 75
-        21 extra mesh-based keypoints
+Jaw          = 22
 
-    76 ... 126
-        51 facial landmarks
+L_Eye        = 23
+R_Eye        = 24
 
-Therefore:
+L_Index1     = 25
+L_Index2     = 26
+L_Index3     = 27
 
-    0   - 54   = Kinematic/LBS skeleton
-    55  - 75   = Extra vertex keypoints
-    76  - 126  = Facial landmarks
+L_Middle1    = 28
+L_Middle2    = 29
+L_Middle3    = 30
 
-This index layout must be treated as the canonical output layout for this project.
+L_Pinky1     = 31
+L_Pinky2     = 32
+L_Pinky3     = 33
 
----
+L_Ring1      = 34
+L_Ring2      = 35
+L_Ring3      = 36
 
-# 9. SMPL-X Kinematic Joint Mapping
+L_Thumb1     = 37
+L_Thumb2     = 38
+L_Thumb3     = 39
 
-The model contains a `joint2num` mapping.
+R_Index1     = 40
+R_Index2     = 41
+R_Index3     = 42
 
-The verified mapping is:
+R_Middle1    = 43
+R_Middle2    = 44
+R_Middle3    = 45
 
-    Pelvis       = 0
+R_Pinky1     = 46
+R_Pinky2     = 47
+R_Pinky3     = 48
 
-    L_Hip        = 1
-    R_Hip        = 2
+R_Ring1      = 49
+R_Ring2      = 50
+R_Ring3      = 51
 
-    Spine1       = 3
-
-    L_Knee       = 4
-    R_Knee       = 5
-
-    Spine2       = 6
-
-    L_Ankle      = 7
-    R_Ankle      = 8
-
-    Spine3       = 9
-
-    L_Foot       = 10
-    R_Foot       = 11
-
-    Neck         = 12
-
-    L_Collar     = 13
-    R_Collar     = 14
-
-    Head         = 15
-
-    L_Shoulder   = 16
-    R_Shoulder   = 17
-
-    L_Elbow      = 18
-    R_Elbow      = 19
-
-    L_Wrist      = 20
-    R_Wrist      = 21
-
-    Jaw          = 22
-
-    L_Eye        = 23
-    R_Eye        = 24
-
-    L_Index1     = 25
-    L_Index2     = 26
-    L_Index3     = 27
-
-    L_Middle1    = 28
-    L_Middle2    = 29
-    L_Middle3    = 30
-
-    L_Pinky1     = 31
-    L_Pinky2     = 32
-    L_Pinky3     = 33
-
-    L_Ring1      = 34
-    L_Ring2      = 35
-    L_Ring3      = 36
-
-    L_Thumb1     = 37
-    L_Thumb2     = 38
-    L_Thumb3     = 39
-
-    R_Index1     = 40
-    R_Index2     = 41
-    R_Index3     = 42
-
-    R_Middle1    = 43
-    R_Middle2    = 44
-    R_Middle3    = 45
-
-    R_Pinky1     = 46
-    R_Pinky2     = 47
-    R_Pinky3     = 48
-
-    R_Ring1      = 49
-    R_Ring2      = 50
-    R_Ring3      = 51
-
-    R_Thumb1     = 52
-    R_Thumb2     = 53
-    R_Thumb3     = 54
+R_Thumb1     = 52
+R_Thumb2     = 53
+R_Thumb3     = 54
+```
 
 ---
 
-# 10. Complete Kinematic Parent Table
+# 13. Complete Kinematic Parent Array
 
-The verified parent array is:
+The model reports:
 
+```text
+parents.shape = (55,)
+```
+
+The exact parent array is:
+
+```text
+[
+    -1,
+     0,
+     0,
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     9,
+     9,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18,
+    19,
+    15,
+    15,
+    15,
+    20,
+    25,
+    26,
+    20,
+    28,
+    29,
+    20,
+    31,
+    32,
+    20,
+    34,
+    35,
+    20,
+    37,
+    38,
+    21,
+    40,
+    41,
+    21,
+    43,
+    44,
+    21,
+    46,
+    47,
+    21,
+    49,
+    50,
+    21,
+    52,
+    53
+]
+```
+
+---
+
+# 14. Complete Kinematic Skeleton Table
+
+| Index | Name | Parent Index | Parent Name | Category |
+|---:|---|---:|---|---|
+| 0 | Pelvis | -1 | Root | Core |
+| 1 | L_Hip | 0 | Pelvis | Core |
+| 2 | R_Hip | 0 | Pelvis | Core |
+| 3 | Spine1 | 0 | Pelvis | Core |
+| 4 | L_Knee | 1 | L_Hip | Core |
+| 5 | R_Knee | 2 | R_Hip | Core |
+| 6 | Spine2 | 3 | Spine1 | Core |
+| 7 | L_Ankle | 4 | L_Knee | Core |
+| 8 | R_Ankle | 5 | R_Knee | Core |
+| 9 | Spine3 | 6 | Spine2 | Core |
+| 10 | L_Foot | 7 | L_Ankle | Core |
+| 11 | R_Foot | 8 | R_Ankle | Core |
+| 12 | Neck | 9 | Spine3 | Core |
+| 13 | L_Collar | 9 | Spine3 | Upper Body |
+| 14 | R_Collar | 9 | Spine3 | Upper Body |
+| 15 | Head | 12 | Neck | Core |
+| 16 | L_Shoulder | 13 | L_Collar | Core |
+| 17 | R_Shoulder | 14 | R_Collar | Core |
+| 18 | L_Elbow | 16 | L_Shoulder | Core |
+| 19 | R_Elbow | 17 | R_Shoulder | Core |
+| 20 | L_Wrist | 18 | L_Elbow | Core |
+| 21 | R_Wrist | 19 | R_Elbow | Core |
+| 22 | Jaw | 15 | Head | Face |
+| 23 | L_Eye | 15 | Head | Face |
+| 24 | R_Eye | 15 | Head | Face |
+| 25 | L_Index1 | 20 | L_Wrist | Hand |
+| 26 | L_Index2 | 25 | L_Index1 | Hand |
+| 27 | L_Index3 | 26 | L_Index2 | Hand |
+| 28 | L_Middle1 | 20 | L_Wrist | Hand |
+| 29 | L_Middle2 | 28 | L_Middle1 | Hand |
+| 30 | L_Middle3 | 29 | L_Middle2 | Hand |
+| 31 | L_Pinky1 | 20 | L_Wrist | Hand |
+| 32 | L_Pinky2 | 31 | L_Pinky1 | Hand |
+| 33 | L_Pinky3 | 32 | L_Pinky2 | Hand |
+| 34 | L_Ring1 | 20 | L_Wrist | Hand |
+| 35 | L_Ring2 | 34 | L_Ring1 | Hand |
+| 36 | L_Ring3 | 35 | L_Ring2 | Hand |
+| 37 | L_Thumb1 | 20 | L_Wrist | Hand |
+| 38 | L_Thumb2 | 37 | L_Thumb1 | Hand |
+| 39 | L_Thumb3 | 38 | L_Thumb2 | Hand |
+| 40 | R_Index1 | 21 | R_Wrist | Hand |
+| 41 | R_Index2 | 40 | R_Index1 | Hand |
+| 42 | R_Index3 | 41 | R_Index2 | Hand |
+| 43 | R_Middle1 | 21 | R_Wrist | Hand |
+| 44 | R_Middle2 | 43 | R_Middle1 | Hand |
+| 45 | R_Middle3 | 44 | R_Middle2 | Hand |
+| 46 | R_Pinky1 | 21 | R_Wrist | Hand |
+| 47 | R_Pinky2 | 46 | R_Pinky1 | Hand |
+| 48 | R_Pinky3 | 47 | R_Pinky2 | Hand |
+| 49 | R_Ring1 | 21 | R_Wrist | Hand |
+| 50 | R_Ring2 | 49 | R_Ring1 | Hand |
+| 51 | R_Ring3 | 50 | R_Ring2 | Hand |
+| 52 | R_Thumb1 | 21 | R_Wrist | Hand |
+| 53 | R_Thumb2 | 52 | R_Thumb1 | Hand |
+| 54 | R_Thumb3 | 53 | R_Thumb2 | Hand |
+
+---
+
+# 15. `kintree_table`
+
+The model reports:
+
+```text
+kintree_table.shape = (2, 55)
+```
+
+The observed table is:
+
+```text
+[
     [
-        -1,
-         0,
-         0,
-         0,
-         1,
-         2,
-         3,
-         4,
-         5,
-         6,
-         7,
-         8,
-         9,
-         9,
-         9,
+        4294967295,
+        0,
+        0,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        9,
+        9,
         12,
         13,
         14,
@@ -466,185 +831,144 @@ The verified parent array is:
         21,
         52,
         53
-    ]
-
-The complete hierarchy is:
-
-| Index | Name | Parent Index | Parent Name | Functional Group |
-|---:|---|---:|---|---|
-| 0 | Pelvis | -1 | Root | Core Body |
-| 1 | L_Hip | 0 | Pelvis | Core Body |
-| 2 | R_Hip | 0 | Pelvis | Core Body |
-| 3 | Spine1 | 0 | Pelvis | Core Body |
-| 4 | L_Knee | 1 | L_Hip | Core Body |
-| 5 | R_Knee | 2 | R_Hip | Core Body |
-| 6 | Spine2 | 3 | Spine1 | Core Body |
-| 7 | L_Ankle | 4 | L_Knee | Core Body |
-| 8 | R_Ankle | 5 | R_Knee | Core Body |
-| 9 | Spine3 | 6 | Spine2 | Core Body |
-| 10 | L_Foot | 7 | L_Ankle | Core Body |
-| 11 | R_Foot | 8 | R_Ankle | Core Body |
-| 12 | Neck | 9 | Spine3 | Core Body |
-| 13 | L_Collar | 9 | Spine3 | Core Body |
-| 14 | R_Collar | 9 | Spine3 | Core Body |
-| 15 | Head | 12 | Neck | Core Body |
-| 16 | L_Shoulder | 13 | L_Collar | Core Body |
-| 17 | R_Shoulder | 14 | R_Collar | Core Body |
-| 18 | L_Elbow | 16 | L_Shoulder | Core Body |
-| 19 | R_Elbow | 17 | R_Shoulder | Core Body |
-| 20 | L_Wrist | 18 | L_Elbow | Core Body |
-| 21 | R_Wrist | 19 | R_Elbow | Core Body |
-| 22 | Jaw | 15 | Head | Face |
-| 23 | L_Eye | 15 | Head | Face |
-| 24 | R_Eye | 15 | Head | Face |
-| 25 | L_Index1 | 20 | L_Wrist | Hands |
-| 26 | L_Index2 | 25 | L_Index1 | Hands |
-| 27 | L_Index3 | 26 | L_Index2 | Hands |
-| 28 | L_Middle1 | 20 | L_Wrist | Hands |
-| 29 | L_Middle2 | 28 | L_Middle1 | Hands |
-| 30 | L_Middle3 | 29 | L_Middle2 | Hands |
-| 31 | L_Pinky1 | 20 | L_Wrist | Hands |
-| 32 | L_Pinky2 | 31 | L_Pinky1 | Hands |
-| 33 | L_Pinky3 | 32 | L_Pinky2 | Hands |
-| 34 | L_Ring1 | 20 | L_Wrist | Hands |
-| 35 | L_Ring2 | 34 | L_Ring1 | Hands |
-| 36 | L_Ring3 | 35 | L_Ring2 | Hands |
-| 37 | L_Thumb1 | 20 | L_Wrist | Hands |
-| 38 | L_Thumb2 | 37 | L_Thumb1 | Hands |
-| 39 | L_Thumb3 | 38 | L_Thumb2 | Hands |
-| 40 | R_Index1 | 21 | R_Wrist | Hands |
-| 41 | R_Index2 | 40 | R_Index1 | Hands |
-| 42 | R_Index3 | 41 | R_Index2 | Hands |
-| 43 | R_Middle1 | 21 | R_Wrist | Hands |
-| 44 | R_Middle2 | 43 | R_Middle1 | Hands |
-| 45 | R_Middle3 | 44 | R_Middle2 | Hands |
-| 46 | R_Pinky1 | 21 | R_Wrist | Hands |
-| 47 | R_Pinky2 | 46 | R_Pinky1 | Hands |
-| 48 | R_Pinky3 | 47 | R_Pinky2 | Hands |
-| 49 | R_Ring1 | 21 | R_Wrist | Hands |
-| 50 | R_Ring2 | 49 | R_Ring1 | Hands |
-| 51 | R_Ring3 | 50 | R_Ring2 | Hands |
-| 52 | R_Thumb1 | 21 | R_Wrist | Hands |
-| 53 | R_Thumb2 | 52 | R_Thumb1 | Hands |
-| 54 | R_Thumb3 | 53 | R_Thumb2 | Hands |
-
----
-
-# 11. Kinematic Tree
-
-The model contains:
-
-    kintree_table.shape == (2, 55)
-
-The first row contains the parent indices.
-
-The second row contains the joint indices.
-
-The complete parent structure is:
-
-    Joint 0  -> Parent -1
-    Joint 1  -> Parent 0
-    Joint 2  -> Parent 0
-    Joint 3  -> Parent 0
-    Joint 4  -> Parent 1
-    Joint 5  -> Parent 2
-    Joint 6  -> Parent 3
-    Joint 7  -> Parent 4
-    Joint 8  -> Parent 5
-    Joint 9  -> Parent 6
-    Joint 10 -> Parent 7
-    Joint 11 -> Parent 8
-    Joint 12 -> Parent 9
-    Joint 13 -> Parent 9
-    Joint 14 -> Parent 9
-    Joint 15 -> Parent 12
-    Joint 16 -> Parent 13
-    Joint 17 -> Parent 14
-    Joint 18 -> Parent 16
-    Joint 19 -> Parent 17
-    Joint 20 -> Parent 18
-    Joint 21 -> Parent 19
-    Joint 22 -> Parent 15
-    Joint 23 -> Parent 15
-    Joint 24 -> Parent 15
-    Joint 25 -> Parent 20
-    Joint 26 -> Parent 25
-    Joint 27 -> Parent 26
-    Joint 28 -> Parent 20
-    Joint 29 -> Parent 28
-    Joint 30 -> Parent 29
-    Joint 31 -> Parent 20
-    Joint 32 -> Parent 31
-    Joint 33 -> Parent 32
-    Joint 34 -> Parent 20
-    Joint 35 -> Parent 34
-    Joint 36 -> Parent 35
-    Joint 37 -> Parent 20
-    Joint 38 -> Parent 37
-    Joint 39 -> Parent 38
-    Joint 40 -> Parent 21
-    Joint 41 -> Parent 40
-    Joint 42 -> Parent 41
-    Joint 43 -> Parent 21
-    Joint 44 -> Parent 43
-    Joint 45 -> Parent 44
-    Joint 46 -> Parent 21
-    Joint 47 -> Parent 46
-    Joint 48 -> Parent 47
-    Joint 49 -> Parent 21
-    Joint 50 -> Parent 49
-    Joint 51 -> Parent 50
-    Joint 52 -> Parent 21
-    Joint 53 -> Parent 52
-    Joint 54 -> Parent 53
-
----
-
-# 12. Extra Vertex-Based Joints
-
-The SMPL-X `VertexJointSelector` adds 21 additional keypoints.
-
-These are NOT kinematic joints.
-
-They are selected directly from mesh vertices.
-
-The verified vertex indices are:
-
+    ],
     [
-        9120,
-        9929,
-        9448,
-        616,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
         6,
-        5770,
-        5780,
-        8846,
-        8463,
-        8474,
-        8635,
-        5361,
-        4933,
-        5058,
-        5169,
-        5286,
-        8079,
-        7669,
-        7794,
-        7905,
-        8022
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
     ]
+]
+```
 
-They are appended after the 55 LBS joints.
+The first root value:
 
-Therefore their final output indices are:
+```text
+4294967295
+```
 
-    55 ... 75
+is the unsigned representation of:
+
+```text
+-1
+```
+
+Therefore the root joint is:
+
+```text
+Pelvis
+```
 
 ---
 
-# 13. Complete Extra-Joint Table
+# 16. Extra Vertex-Based Joints
 
-| Output Index | Name | Source | Vertex Index | Group |
+The loaded model reports:
+
+```python
+m.vertex_joint_selector.extra_joints_idxs.tolist()
+```
+
+as:
+
+```text
+[
+    9120,
+    9929,
+    9448,
+    616,
+    6,
+    5770,
+    5780,
+    8846,
+    8463,
+    8474,
+    8635,
+    5361,
+    4933,
+    5058,
+    5169,
+    5286,
+    8079,
+    7669,
+    7794,
+    7905,
+    8022
+]
+```
+
+There are:
+
+```text
+21
+```
+
+extra joints.
+
+---
+
+# 17. Complete Extra Joint Table
+
+These joints are appended after the 55 LBS joints.
+
+Therefore their output indices are:
+
+```text
+55 ... 75
+```
+
+| Output Index | Name | Source | Vertex Index | Category |
 |---:|---|---|---:|---|
 | 55 | Nose | Vertex | 9120 | Face |
 | 56 | R_Eye_Keypoint | Vertex | 9929 | Face |
@@ -670,1637 +994,1760 @@ Therefore their final output indices are:
 
 ---
 
-# 14. Facial Landmarks
+# 18. Facial Landmarks
 
-The model contains:
+The model reports:
 
-    51 facial landmarks
+```text
+lmk_faces_idx.shape = (51,)
+```
 
-Verified by:
+Therefore there are:
 
-    m.lmk_faces_idx.shape
+```text
+51 static facial landmarks
+```
 
-which gives:
-
-    torch.Size([51])
-
-These landmarks are generated from mesh faces and barycentric coordinates.
-
-The relevant operation is conceptually:
-
-    landmarks = vertices2landmarks(
-        vertices,
-        faces,
-        lmk_faces_idx,
-        lmk_bary_coords
-    )
-
-The landmarks are then appended:
-
-    joints = torch.cat([joints, landmarks], dim=1)
-
-Therefore they occupy:
-
-    76 ... 126
-
----
-
-# 15. Facial Landmark Index Layout
-
-The 51 facial landmarks occupy:
-
-    76  right_eye_brow1
-    77  right_eye_brow2
-    78  right_eye_brow3
-    79  right_eye_brow4
-    80  right_eye_brow5
-
-    81  left_eye_brow5
-    82  left_eye_brow4
-    83  left_eye_brow3
-    84  left_eye_brow2
-    85  left_eye_brow1
-
-    86  nose1
-    87  nose2
-    88  nose3
-    89  nose4
-
-    90  right_nose_2
-    91  right_nose_1
-    92  nose_middle
-    93  left_nose_1
-    94  left_nose_2
-
-    95  right_eye1
-    96  right_eye2
-    97  right_eye3
-    98  right_eye4
-    99  right_eye5
-    100 right_eye6
-
-    101 left_eye4
-    102 left_eye3
-    103 left_eye2
-    104 left_eye1
-    105 left_eye6
-    106 left_eye5
-
-    107 right_mouth_1
-    108 right_mouth_2
-    109 right_mouth_3
-    110 mouth_top
-    111 left_mouth_3
-    112 left_mouth_2
-    113 left_mouth_1
-
-    114 left_mouth_5
-    115 left_mouth_4
-    116 mouth_bottom
-
-    117 right_mouth_4
-    118 right_mouth_5
-
-    119 right_lip_1
-    120 right_lip_2
-    121 lip_top
-    122 left_lip_2
-    123 left_lip_1
-    124 left_lip_3
-    125 lip_bottom
-    126 right_lip_3
-
-These landmarks are considered facial geometry features, not primary motion-modeling joints.
-
----
-
-# 16. Face Contour Configuration
-
-The loaded model reports:
-
-    m.use_face_contour == False
-
-Therefore dynamic face-contour landmarks are not additionally appended.
-
-This is consistent with:
-
-    55 + 21 + 51 = 127
-
-The project should preserve this configuration unless there is a deliberate future decision to enable dynamic face contours.
-
----
-
-# 17. Joint Mapper
-
-The loaded model reports:
-
-    m.joint_mapper == None
-
-Therefore no dataset-specific joint remapping is applied after the 127-joint structure is constructed.
-
-This is important for reproducibility.
-
-The current canonical output therefore remains:
-
-    [batch, 127, 3]
-
-without an additional runtime joint mapper.
-
----
-
-# 18. Why the Canonical 127 Must Be Preserved
-
-The project should NOT immediately reduce:
-
-    127 -> 22
-or
-    127 -> 24
-
-and save only the reduced representation.
-
-Doing so would permanently remove information.
-
-For example, we would lose:
-
-    finger articulation
-    fingertip positions
-    toe positions
-    heel positions
-    facial articulation
-    eye information
-    ear information
-    facial landmarks
-
-Instead:
-
-    127
-     |
-     +--> Core Body
-     +--> Hands
-     +--> Feet
-     +--> Face
-
-This makes the system reversible at the representation-selection level.
-
----
-
-# 19. Correct Project-Level Segmentation
-
-The final recommended segmentation is:
-
-    1. Core Body
-    2. Hands
-    3. Feet
-    4. Face
-
-This is preferable to forcing everything into arbitrary numeric groups such as "24 joints".
-
-The number of joints in each representation is determined by the purpose of that representation.
-
----
-
-# 20. Core Body Representation
-
-The Core Body is intended to describe the main human-body motion.
-
-It contains:
-
-    Pelvis
-    L_Hip
-    R_Hip
-    Spine1
-    L_Knee
-    R_Knee
-    Spine2
-    L_Ankle
-    R_Ankle
-    Spine3
-    L_Foot
-    R_Foot
-    Neck
-    L_Collar
-    R_Collar
-    Head
-    L_Shoulder
-    R_Shoulder
-    L_Elbow
-    R_Elbow
-    L_Wrist
-    R_Wrist
-
-Therefore the core kinematic body currently contains:
-
-    22 joints
-
-These are exactly the primary body joints from SMPL-X indices:
-
-    0 ... 21
-
-The important point is that this is NOT an arbitrary first-22 slice.
-
-These 22 joints form the main articulated body chain.
-
----
-
-# 21. Why Core Body Is 22 Rather Than Forcing 24
-
-Earlier, a 24-joint representation was considered.
-
-However, the project does not need to force the canonical SMPL-X structure into exactly 24 joints.
-
-The more logical separation is:
-
-    Core Body = primary articulated body
-    Feet      = contact-related points
-    Hands     = fine articulation
-    Face      = facial articulation
-
-The 22 core joints naturally correspond to:
-
-    pelvis
-    hips
-    knees
-    ankles
-    feet
-    spine
-    neck
-    head
-    shoulders
-    elbows
-    wrists
-
-The extra foot points:
-
-    L_BigToe
-    L_SmallToe
-    L_Heel
-    R_BigToe
-    R_SmallToe
-    R_Heel
-
-are better preserved in the Feet representation because they are particularly useful for contact detection.
-
-Therefore there is no reason to artificially move two arbitrary points into the Core Body merely to reach 24.
-
----
-
-# 22. Core Body Index List
-
-The project-defined Core Body is:
-
-    CORE_BODY_INDICES = [
-        0,   # Pelvis
-        1,   # L_Hip
-        2,   # R_Hip
-        3,   # Spine1
-        4,   # L_Knee
-        5,   # R_Knee
-        6,   # Spine2
-        7,   # L_Ankle
-        8,   # R_Ankle
-        9,   # Spine3
-        10,  # L_Foot
-        11,  # R_Foot
-        12,  # Neck
-        13,  # L_Collar
-        14,  # R_Collar
-        15,  # Head
-        16,  # L_Shoulder
-        17,  # R_Shoulder
-        18,  # L_Elbow
-        19,  # R_Elbow
-        20,  # L_Wrist
-        21,  # R_Wrist
-    ]
-
-Shape:
-
-    [T, 22, 3]
-
-or, for batched data:
-
-    [B, T, 22, 3]
-
-depending on the storage convention used by Stage 3.
-
----
-
-# 23. Hands Representation
-
-Hands should remain separate from Core Body.
-
-The kinematic finger joints are:
-
-    Left Hand:
-        L_Index1
-        L_Index2
-        L_Index3
-        L_Middle1
-        L_Middle2
-        L_Middle3
-        L_Pinky1
-        L_Pinky2
-        L_Pinky3
-        L_Ring1
-        L_Ring2
-        L_Ring3
-        L_Thumb1
-        L_Thumb2
-        L_Thumb3
-
-    Right Hand:
-        R_Index1
-        R_Index2
-        R_Index3
-        R_Middle1
-        R_Middle2
-        R_Middle3
-        R_Pinky1
-        R_Pinky2
-        R_Pinky3
-        R_Ring1
-        R_Ring2
-        R_Ring3
-        R_Thumb1
-        R_Thumb2
-        R_Thumb3
-
-These occupy:
-
-    25 ... 54
-
-Additionally, fingertip keypoints occupy:
-
-    66 ... 75
-
-Therefore the Hands representation can contain both:
-
-    finger articulation joints
-    +
-    fingertip keypoints
-
-This is useful for future manipulation and interaction tasks.
-
----
-
-# 24. Hands Index Groups
-
-Left hand:
-
-    LEFT_HAND_JOINTS = [
-        25, 26, 27,
-        28, 29, 30,
-        31, 32, 33,
-        34, 35, 36,
-        37, 38, 39,
-    ]
-
-Right hand:
-
-    RIGHT_HAND_JOINTS = [
-        40, 41, 42,
-        43, 44, 45,
-        46, 47, 48,
-        49, 50, 51,
-        52, 53, 54,
-    ]
-
-Left fingertips:
-
-    LEFT_HAND_TIPS = [
-        66, 67, 68, 69, 70
-    ]
-
-Right fingertips:
-
-    RIGHT_HAND_TIPS = [
-        71, 72, 73, 74, 75
-    ]
-
-Complete hands representation:
-
-    HAND_JOINTS = (
-        LEFT_HAND_JOINTS
-        + RIGHT_HAND_JOINTS
-        + LEFT_HAND_TIPS
-        + RIGHT_HAND_TIPS
-    )
-
----
-
-# 25. Feet Representation
-
-Feet should be maintained separately.
-
-This is particularly important because the project will later perform:
-
-    Contact Detection
-
-and foot contact is one of the most important sources of information for:
-
-    locomotion
-    gait
-    support
-    stance
-    motion segmentation
-
-The Feet representation should include:
-
-    L_Ankle
-    R_Ankle
-    L_Foot
-    R_Foot
-    L_BigToe
-    L_SmallToe
-    L_Heel
-    R_BigToe
-    R_SmallToe
-    R_Heel
-
-The corresponding canonical indices are:
-
-    FEET_INDICES = [
-        7,   # L_Ankle
-        8,   # R_Ankle
-        10,  # L_Foot
-        11,  # R_Foot
-        60,  # L_BigToe
-        61,  # L_SmallToe
-        62,  # L_Heel
-        63,  # R_BigToe
-        64,  # R_SmallToe
-        65,  # R_Heel
-    ]
-
-This representation has:
-
-    10 points
-
----
-
-# 26. Why Feet Are Separate
-
-The Core Body already contains:
-
-    L_Ankle
-    R_Ankle
-    L_Foot
-    R_Foot
-
-but contact detection benefits from more detailed geometry.
-
-Therefore the additional points:
-
-    BigToe
-    SmallToe
-    Heel
-
-are retained in Feet.
-
-This gives the contact detector more information without contaminating the main body representation with unnecessary detail.
-
----
-
-# 27. Contact Detection Representation
-
-The recommended input to the future contact detector is:
-
-    Feet representation
-
-rather than only:
-
-    Core Body
-
-The detector can use:
-
-    ankle velocity
-    foot velocity
-    toe velocity
-    heel velocity
-    height above ground
-    relative foot motion
-    temporal stability
-
-The exact contact algorithm will be defined in a later stage.
-
-The important current decision is:
-
-    Preserve all foot keypoints now.
-
----
-
-# 28. Face Representation
-
-Face information is kept separately.
-
-The Face representation contains:
-
-    Jaw
-    L_Eye
-    R_Eye
-    Nose
-    L_Eye_Keypoint
-    R_Eye_Keypoint
-    L_Ear
-    R_Ear
-    51 facial landmarks
-
-The kinematic face joints are:
-
-    22 = Jaw
-    23 = L_Eye
-    24 = R_Eye
-
-The extra face keypoints are:
-
-    55 = Nose
-    56 = R_Eye_Keypoint
-    57 = L_Eye_Keypoint
-    58 = R_Ear
-    59 = L_Ear
-
-The detailed facial landmarks are:
-
-    76 ... 126
-
----
-
-# 29. Eyes Policy
-
-Both eyes are preserved.
-
-The project must NOT make the mistake of keeping only one eye.
-
-The canonical representation contains:
-
-    L_Eye = 23
-    R_Eye = 24
-
-and additional mesh keypoints:
-
-    R_Eye_Keypoint = 56
-    L_Eye_Keypoint = 57
-
-The detailed facial landmark representation also contains landmarks around both eyes.
-
-Therefore there is no reason to discard either eye.
-
-The Face representation remains optional for the main motion-learning pipeline.
-
----
-
-# 30. Face Is Not Part of Core Body
-
-The following are intentionally excluded from Core Body:
-
-    Jaw
-    L_Eye
-    R_Eye
-    Nose
-    Ears
-    Facial landmarks
-
-Reason:
-
-The main research objective is human motion representation.
-
-Detailed facial articulation has a different temporal and semantic structure and should not unnecessarily increase the dimensionality of the main body-motion representation.
-
-However, the information is preserved for future use.
-
----
-
-# 31. Canonical Representation vs Derived Representations
-
-This distinction is fundamental.
-
-## Canonical
-
-    SMPL-X 127
-
-This is the source of truth.
-
-## Derived
-
-    Core Body
-    Hands
-    Feet
-    Face
-
-These are views generated from the canonical representation.
-
-The derived representations can change later without changing the reconstruction stage.
-
----
-
-# 32. Recommended Data Architecture
-
-The data flow should conceptually be:
-
-    AMASS
-      |
-      v
-    SMPL-X reconstruction
-      |
-      v
-    canonical_127
-      |
-      +--> core_body
-      |
-      +--> hands
-      |
-      +--> feet
-      |
-      +--> face
-
-The canonical representation should remain available in the processed dataset.
-
----
-
-# 33. Recommended Storage
-
-A processed motion file can conceptually contain:
-
-    joints_127
-    core_body
-    hands
-    feet
-    face
-    fps
-    model_type
-    gender
-    source_file
-    representation_version
-
-However, if storage efficiency is important, the derived representations do not necessarily need to be duplicated.
-
-The safest architecture is:
-
-    Save canonical 127
-    Save metadata
-    Derive views when required
-
-or, if Stage 3 is intended to be a caching stage:
-
-    Save canonical 127
-    Save selected derived representations
-
-The canonical 127 remains mandatory.
-
----
-
-# 34. Suggested Metadata
-
-The output metadata should include:
-
-    model_type = "smplx"
-
-    representation = "smplx_127"
-
-    gender = "neutral"
-
-    num_betas = 16
-
-    use_pca = False
-
-    use_face_contour = False
-
-    joint_mapper = None
-
-    canonical_joint_count = 127
-
-    lbs_joint_count = 55
-
-    extra_joint_count = 21
-
-    facial_landmark_count = 51
-
-This makes the processed dataset self-describing.
-
----
-
-# 35. Recommended Named Index Definitions
-
-Stage 3 should use named lists rather than unexplained numeric slices.
-
-Recommended definitions:
-
-    CORE_BODY_INDICES = [
-        0, 1, 2, 3, 4, 5,
-        6, 7, 8, 9, 10, 11,
-        12, 13, 14, 15,
-        16, 17, 18, 19, 20, 21,
-    ]
-
-    LEFT_HAND_JOINTS = [
-        25, 26, 27,
-        28, 29, 30,
-        31, 32, 33,
-        34, 35, 36,
-        37, 38, 39,
-    ]
-
-    RIGHT_HAND_JOINTS = [
-        40, 41, 42,
-        43, 44, 45,
-        46, 47, 48,
-        49, 50, 51,
-        52, 53, 54,
-    ]
-
-    LEFT_HAND_TIPS = [
-        66, 67, 68, 69, 70,
-    ]
-
-    RIGHT_HAND_TIPS = [
-        71, 72, 73, 74, 75,
-    ]
-
-    FEET_INDICES = [
-        7, 8,
-        10, 11,
-        60, 61, 62,
-        63, 64, 65,
-    ]
-
-    FACE_INDICES = [
-        22, 23, 24,
-        55, 56, 57, 58, 59,
-        *range(76, 127),
-    ]
-
----
-
-# 36. Important Rule About Numeric Ranges
-
-Do NOT use code such as:
-
-    core = joints[:, :24]
-
-because this assumes that the first 24 joints are the desired project representation.
-
-Instead:
-
-    core = joints[:, CORE_BODY_INDICES]
-
-This makes the definition explicit and reproducible.
-
-Likewise:
-
-    hands = joints[:, HAND_JOINTS]
-    feet = joints[:, FEET_INDICES]
-    face = joints[:, FACE_INDICES]
-
----
-
-# 37. Example Extraction Logic
-
-The conceptual Stage 3 logic is:
-
-    core_body = joints[:, CORE_BODY_INDICES]
-
-    left_hand = joints[:, LEFT_HAND_JOINTS + LEFT_HAND_TIPS]
-
-    right_hand = joints[:, RIGHT_HAND_JOINTS + RIGHT_HAND_TIPS]
-
-    hands = joints[:, HAND_JOINTS]
-
-    feet = joints[:, FEET_INDICES]
-
-    face = joints[:, FACE_INDICES]
-
-The exact tensor dimension handling depends on whether the input is:
-
-    [127, 3]
-
-    [T, 127, 3]
-
-or:
-
-    [B, T, 127, 3]
-
-Stage 3 should preserve the leading dimensions.
-
----
-
-# 38. No Information Loss Principle
-
-The following transformation is allowed:
-
-    127 -> Core Body
-
-    127 -> Hands
-
-    127 -> Feet
-
-    127 -> Face
-
-The following is NOT acceptable as the only stored representation:
-
-    127 -> 22
-    delete everything else
-
-because this permanently loses information.
-
-The canonical 127 representation must remain accessible.
-
----
-
-# 39. Relationship to Normalization
-
-Normalization comes AFTER extraction of the representation required for a specific task.
-
-The conceptual pipeline is:
-
-    SMPL-X 127
-        |
-        +--> Core Body
-                |
-                v
-            Normalization
-                |
-                v
-            Features
-                |
-                v
-            Segmentation
-                |
-                v
-            Dataset
-                |
-                v
-            Latent Objective
-
-For contact detection:
-
-    SMPL-X 127
-        |
-        v
-       Feet
-        |
-        v
-    Normalization
-        |
-        v
-    Contact Detection
-
-For hand-related tasks:
-
-    SMPL-X 127
-        |
-        v
-      Hands
-        |
-        v
-    Normalization
-        |
-        v
-    Hand Features
-
----
-
-# 40. Relationship to Motion Segmentation
-
-Motion segmentation should primarily operate on the body-motion representation.
-
-The recommended starting representation is:
-
-    Core Body
-
-with optional additional information from:
-
-    Feet
-
-This allows segmentation to consider:
-
-    body pose
-    body velocity
-    foot contacts
-    stance/swing transitions
-
-Hands and Face should not automatically influence the main segmentation pipeline unless the research objective later requires them.
-
----
-
-# 41. Relationship to Latent Objective Learning
-
-The main latent objective learning pipeline should initially use:
-
-    Core Body
-
-and potentially:
-
-    Core Body + Feet/Contact Features
-
-This keeps the primary representation focused on:
-
-    human motion
-    body dynamics
-    locomotion
-    interaction-relevant motion
-
-Hands and Face remain available for future experiments.
-
-This is important because the project can later test:
-
-    Core Body only
-
-versus:
-
-    Core Body + Hands
-
-versus:
-
-    Core Body + Feet
-
-versus:
-
-    Core Body + Hands + Feet
-
-without changing the underlying reconstruction data.
-
----
-
-# 42. Future Extension Policy
-
-The current representation is intentionally modular.
-
-If future experiments require:
-
-    hand-object interaction
-
-then use:
-
-    Core Body + Hands
-
-If future experiments require:
-
-    locomotion
-
-then use:
-
-    Core Body + Feet + Contact
-
-If future experiments require:
-
-    human communication
-
-then Face can be added.
-
-If future experiments require:
-
-    full-body interaction
-
-then:
-
-    Core Body + Hands + Feet
-
-can be used.
-
-The canonical 127 representation remains unchanged.
-
----
-
-# 43. Model File Inspection Commands
-
-## Inspect model keys
-
-    import numpy as np
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
-
-    d = np.load(p, allow_pickle=True)
-
-    print(d.files)
-
-Observed keys include:
-
-    bs_type
-    bs_style
-    J_regressor_prior
-    f
-    J_regressor
-    kintree_table
-    J
-    weights_prior
-    weights
-    vert_sym_idxs
-    posedirs
-    v_template
-    shapedirs
-    hands_meanr
-    hands_meanl
-    lmk_bary_coords
-    vt
-    part2num
-    hands_coeffsr
-    lmk_faces_idx
-    dynamic_lmk_faces_idx
-    hands_componentsr
-    dynamic_lmk_bary_coords
-    ft
-    hands_componentsl
-    joint2num
-    allow_pickle
-    hands_coeffsl
-
----
-
-# 44. Inspect J_regressor
-
-    import numpy as np
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
-
-    d = np.load(p, allow_pickle=True)
-
-    print("J_regressor shape:", d["J_regressor"].shape)
-
-Expected:
-
-    J_regressor shape: (55, 10475)
-
----
-
-# 45. Inspect Kinematic Tree
-
-    import numpy as np
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
-
-    d = np.load(p, allow_pickle=True)
-
-    print("kintree_table shape:", d["kintree_table"].shape)
-    print(d["kintree_table"])
-
-Expected:
-
-    kintree_table shape: (2, 55)
-
----
-
-# 46. Inspect joint2num
-
-    import numpy as np
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
-
-    d = np.load(p, allow_pickle=True)
-
-    joint2num = d["joint2num"].item()
-
-    for name, index in sorted(
-        joint2num.items(),
-        key=lambda x: x[1]
-    ):
-        print(index, name)
-
----
-
-# 47. Inspect Parent Array
-
-    import smplx
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
-
-    m = smplx.create(
-        p,
-        model_type="smplx",
-        gender="neutral",
-        num_betas=16,
-        use_pca=False,
-        ext="npz",
-    )
-
-    print("parents shape:", m.parents.shape)
-    print("parents:", m.parents.tolist())
-
-Expected:
-
-    parents shape: torch.Size([55])
-
----
-
-# 48. Inspect Extra Vertex Joints
-
-    import smplx
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
-
-    m = smplx.create(
-        p,
-        model_type="smplx",
-        gender="neutral",
-        num_betas=16,
-        use_pca=False,
-        ext="npz",
-    )
-
-    print(
-        "extra joints:",
-        m.vertex_joint_selector.extra_joints_idxs.tolist()
-    )
-
-Expected:
-
-    [
-        9120,
-        9929,
-        9448,
-        616,
-        6,
-        5770,
-        5780,
-        8846,
-        8463,
-        8474,
-        8635,
-        5361,
-        4933,
-        5058,
-        5169,
-        5286,
-        8079,
-        7669,
-        7794,
-        7905,
-        8022
-    ]
-
----
-
-# 49. Inspect Landmark Count
-
-    import smplx
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
-
-    m = smplx.create(
-        p,
-        model_type="smplx",
-        gender="neutral",
-        num_betas=16,
-        use_pca=False,
-        ext="npz",
-    )
-
-    print("landmarks:", len(m.lmk_faces_idx))
-
-Expected:
-
-    landmarks: 51
-
----
-
-# 50. Final Verification Script
-
-The complete verification command is:
-
-    import smplx
-
-    p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
-
-    m = smplx.create(
-        p,
-        model_type="smplx",
-        gender="neutral",
-        num_betas=16,
-        use_pca=False,
-        ext="npz",
-    )
-
-    o = m()
-
-    lbs = m.J_regressor.shape[0]
-    extra = len(m.vertex_joint_selector.extra_joints_idxs)
-    landmarks = len(m.lmk_faces_idx)
-
-    expected = lbs + extra + landmarks
-    actual = o.joints.shape[1]
-
-    print("========================================")
-    print("SMPL-X JOINT VERIFICATION")
-    print("========================================")
-    print("NUM_JOINTS       :", m.NUM_JOINTS)
-    print("LBS joints       :", lbs)
-    print("Extra joints     :", extra)
-    print("Face landmarks   :", landmarks)
-    print("Expected total   :", expected)
-    print("Actual output    :", actual)
-    print("Output shape     :", tuple(o.joints.shape))
-    print("Parent count     :", len(m.parents))
-    print("Joint mapper     :", m.joint_mapper)
-    print("Face contour     :", m.use_face_contour)
-    print("========================================")
-
-Expected:
-
-    ========================================
-    SMPL-X JOINT VERIFICATION
-    ========================================
-    NUM_JOINTS       : 54
-    LBS joints       : 55
-    Extra joints     : 21
-    Face landmarks   : 51
-    Expected total   : 127
-    Actual output    : 127
-    Output shape     : (1, 127, 3)
-    Parent count     : 55
-    Joint mapper     : None
-    Face contour     : False
-    ========================================
-
----
-
-# 51. Definitive Representation Table
-
-| Representation | Canonical Indices | Count | Main Purpose |
-|---|---|---:|---|
-| Canonical | 0–126 | 127 | Complete information |
-| Core Body | 0–21 | 22 | Main human motion |
-| Hands | 25–54 + 66–75 | 40 | Hand articulation |
-| Feet | 7,8,10,11,60–65 | 10 | Contact and locomotion |
-| Face | 22–24,55–59,76–126 | 59 | Facial information |
-
-Note:
-
-The representations overlap intentionally.
-
-For example:
-
-    L_Ankle
-
-belongs to Core Body and Feet.
-
-This is not duplication of information at the canonical level.
-
-It is simply a task-specific view.
-
----
-
-# 52. Why Overlapping Representations Are Correct
-
-A joint can be relevant to more than one task.
-
-For example:
-
-    L_Ankle
-
-is:
-
-    Core Body information
-
-and:
-
-    Feet/contact information
-
-Similarly:
-
-    L_Wrist
-
-belongs to:
-
-    Core Body
-
-and is the root of:
-
-    Hand articulation
-
-Therefore the representations are not mutually exclusive partitions.
-
-They are **functional views** of the canonical representation.
-
-This is the correct design for the project.
-
----
-
-# 53. Canonical vs Functional Partition
-
-The project should NOT think of the 127 joints as:
-
-    Body OR Hands OR Feet OR Face
-
-Instead:
-
-    Canonical 127
-          |
-          +--> functional view: Core Body
-          |
-          +--> functional view: Hands
-          |
-          +--> functional view: Feet
-          |
-          +--> functional view: Face
-
-This distinction is important.
-
-The same canonical joint may appear in more than one downstream view when logically useful.
-
----
-
-# 54. Stage 3 Responsibilities
-
-`03_extract_joints.py` should:
-
-    1. Load the canonical SMPL-X output.
-    2. Validate that it contains 127 joints.
-    3. Define named joint-index mappings.
-    4. Extract Core Body.
-    5. Extract Hands.
-    6. Extract Feet.
-    7. Extract Face.
-    8. Preserve metadata.
-    9. Save the canonical representation.
-    10. Save derived representations if required by the dataset pipeline.
-
-It should NOT:
-
-    - reconstruct SMPL-X
-    - change the SMPL-X kinematic hierarchy
-    - delete canonical information
-    - invent a new joint ordering without documentation
-    - assume 24 joints by slicing the first 24 indices
-
----
-
-# 55. Future-Proof Design
-
-The current design allows the following future experiments without rerunning reconstruction:
-
-    Experiment A:
-        Core Body
-
-    Experiment B:
-        Core Body + Feet
-
-    Experiment C:
-        Core Body + Contact
-
-    Experiment D:
-        Core Body + Hands
-
-    Experiment E:
-        Core Body + Hands + Feet
-
-    Experiment F:
-        Core Body + Hands + Feet + Face
-
-All experiments can originate from:
-
-    SMPL-X 127
-
----
-
-# 56. Definitive Project Numbers
-
-The following values are now considered verified:
-
-    SMPL-X NUM_JOINTS:
-        54
-
-    J_regressor:
-        (55, 10475)
-
-    LBS joints:
-        55
-
-    Extra vertex joints:
-        21
-
-    Facial landmarks:
-        51
-
-    Final output:
-        127
-
-    Final tensor:
-        [batch, 127, 3]
-
-    Parent array:
-        55 entries
-
-    Kinematic joint mapping:
-        55 entries
-
-    joint_mapper:
-        None
-
-    use_face_contour:
-        False
-
-    Core Body:
-        22 joints
-
-    Hands:
-        40 points
-
-    Feet:
-        10 points
-
-    Face:
-        59 points
-
----
-
-# 57. Important Formula
-
-The canonical representation is:
-
-    55 LBS
-    +
-    21 extra vertex keypoints
-    +
-    51 facial landmarks
-    =
-    127 canonical joints
+These are appended after the 76 joints/keypoints created by the first two stages.
 
 Therefore:
 
-    SMPL-X 127 = Source of Truth
+```text
+76 ... 126
+```
+
+are facial landmarks.
+
+The landmarks are generated using:
+
+```python
+landmarks = vertices2landmarks(
+    vertices,
+    self.faces_tensor,
+    lmk_faces_idx,
+    lmk_bary_coords
+)
+```
+
+---
+
+# 19. Facial Landmark Output Indices
+
+The relevant facial landmark sequence is:
+
+```text
+76  right_eye_brow1
+77  right_eye_brow2
+78  right_eye_brow3
+79  right_eye_brow4
+80  right_eye_brow5
+
+81  left_eye_brow5
+82  left_eye_brow4
+83  left_eye_brow3
+84  left_eye_brow2
+85  left_eye_brow1
+
+86  nose1
+87  nose2
+88  nose3
+89  nose4
+
+90  right_nose_2
+91  right_nose_1
+92  nose_middle
+93  left_nose_1
+94  left_nose_2
+
+95  right_eye1
+96  right_eye2
+97  right_eye3
+98  right_eye4
+99  right_eye5
+100 right_eye6
+
+101 left_eye4
+102 left_eye3
+103 left_eye2
+104 left_eye1
+105 left_eye6
+106 left_eye5
+
+107 right_mouth_1
+108 right_mouth_2
+109 right_mouth_3
+110 mouth_top
+111 left_mouth_3
+112 left_mouth_2
+113 left_mouth_1
+
+114 left_mouth_5
+115 left_mouth_4
+116 mouth_bottom
+
+117 right_mouth_4
+118 right_mouth_5
+
+119 right_lip_1
+120 right_lip_2
+121 lip_top
+122 left_lip_2
+123 left_lip_1
+124 left_lip_3
+125 lip_bottom
+126 right_lip_3
+```
+
+These are facial geometry landmarks.
+
+They are NOT part of the main body kinematic skeleton.
+
+---
+
+# 20. Complete 127-Joint Layout
+
+```text
+0 ... 54
+    Kinematic / LBS skeleton
+    Body + hands + jaw + eyes
+
+55 ... 59
+    Face vertex keypoints
+    Nose + eyes + ears
+
+60 ... 65
+    Feet keypoints
+    Big toes + small toes + heels
+
+66 ... 75
+    Hand fingertip keypoints
+
+76 ... 126
+    Facial landmarks
+```
+
+Total:
+
+```text
+55 + 5 + 6 + 10 + 51 = 127
+```
+
+---
+
+# 21. Recommended Representation Separation
+
+The project should use the following conceptual groups:
+
+```text
+                    SMPL-X 127
+                         |
+        +----------------+----------------+
+        |                |                |
+        v                v                v
+      BODY             HANDS            FACE
+        |                |                |
+        |                |                +--> Jaw
+        |                |                +--> Eyes
+        |                |                +--> Nose
+        |                |                +--> Ears
+        |                |                +--> Landmarks
+        |                |
+        |                +--> Finger joints
+        |                +--> Fingertips
+        |
+        +--> Pelvis
+        +--> Hips
+        +--> Knees
+        +--> Ankles
+        +--> Feet
+        +--> Spine
+        +--> Neck
+        +--> Head
+        +--> Shoulders
+        +--> Elbows
+        +--> Wrists
+        |
+        +--> Feet keypoints
+```
+
+---
+
+# 22. Important Correction to the Previous 24-Joint Idea
+
+The earlier idea of simply taking the first 24 joints is NOT the final project decision.
+
+In particular:
+
+```text
+indices 22 and 23
+```
+
+are:
+
+```text
+Jaw
+L_Eye
+```
 
 and:
 
-    Core Body
-    Hands
-    Feet
-    Face
+```text
+index 24
+```
 
-are derived task-specific views.
+is:
 
----
+```text
+R_Eye
+```
 
-# 58. Final Architecture
+Therefore a naive:
 
-The final agreed architecture is:
+```python
+joints[:, :24]
+```
 
-                    AMASS
-                      |
-                      v
-             SMPL-X Reconstruction
-                      |
-                      v
-               SMPL-X 127
-             Canonical Motion
-                      |
-        +-------------+-------------+
-        |             |             |
-        v             v             v
-     Core Body      Hands          Face
-        |
-        +-------------------+
-        |
-        v
-       Feet
-        |
-        v
-   Normalization
-        |
-        v
- Feature Extraction
-        |
-        v
- Contact Detection
-        |
-        v
- Motion Segmentation
-        |
-        v
- Dataset Creation
-        |
-        v
- Latent Objective Learning
+would introduce facial joints into the main body representation.
 
-More precisely, Feet is a parallel functional representation derived from the canonical 127 and can feed Contact Detection independently.
+This is not desirable for the main motion model.
+
+Therefore the project will NOT define the main representation as:
+
+```text
+first 24 SMPL-X joints
+```
+
+Instead, the main body representation will be an explicitly defined body-centric subset.
 
 ---
 
-# 59. Final Decision
+# 23. Revised Main Body Representation
 
-The project does NOT commit to a mandatory 24-joint representation.
+The main representation should prioritize:
+
+```text
+Pelvis
+Hips
+Knees
+Ankles
+Feet
+Spine
+Neck
+Head
+Shoulders
+Elbows
+Wrists
+```
+
+and exclude:
+
+```text
+Jaw
+Eyes
+Finger joints
+Facial landmarks
+```
+
+This means the body representation must be created using explicit named indices.
+
+Example:
+
+```python
+BODY_CORE = [
+    0,   # Pelvis
+
+    1,   # L_Hip
+    2,   # R_Hip
+
+    3,   # Spine1
+
+    4,   # L_Knee
+    5,   # R_Knee
+
+    6,   # Spine2
+
+    7,   # L_Ankle
+    8,   # R_Ankle
+
+    9,   # Spine3
+
+    10,  # L_Foot
+    11,  # R_Foot
+
+    12,  # Neck
+
+    13,  # L_Collar
+    14,  # R_Collar
+
+    15,  # Head
+
+    16,  # L_Shoulder
+    17,  # R_Shoulder
+
+    18,  # L_Elbow
+    19,  # R_Elbow
+
+    20,  # L_Wrist
+    21,  # R_Wrist
+]
+```
+
+This gives:
+
+```text
+22 joints
+```
+
+before adding any additional body/contact keypoints.
+
+---
+
+# 24. Main Body + Contact Representation
+
+Because contact detection is important for this project, the foot keypoints should remain available.
+
+The most useful additional points are:
+
+```text
+L_BigToe
+R_BigToe
+L_Heel
+R_Heel
+```
+
+These are:
+
+```text
+60 = L_BigToe
+62 = L_Heel
+
+63 = R_BigToe
+65 = R_Heel
+```
+
+Therefore a practical body/contact representation can be:
+
+```text
+22 anatomical body joints
++
+4 foot contact keypoints
+=
+26 points
+```
+
+However, the project should NOT force itself to a historical "24-joint" convention merely because 24 is a common number.
+
+The correct representation should be selected according to the actual downstream objective.
+
+---
+
+# 25. Recommended Final Grouping
+
+The project therefore uses the following grouping instead of forcing everything into exactly 24 joints:
+
+## Group 1 — Core Body
+
+```text
+22 anatomical joints
+```
+
+Indices:
+
+```text
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+```
+
+---
+
+## Group 2 — Feet / Contact
+
+```text
+L_BigToe
+L_SmallToe
+L_Heel
+R_BigToe
+R_SmallToe
+R_Heel
+```
+
+Indices:
+
+```text
+60
+61
+62
+63
+64
+65
+```
+
+These are kept separate because they are especially useful for contact detection.
+
+---
+
+## Group 3 — Hands
+
+Kinematic finger joints:
+
+```text
+25 ... 39
+40 ... 54
+```
+
+plus fingertips:
+
+```text
+66 ... 75
+```
+
+---
+
+## Group 4 — Face
+
+Kinematic facial joints:
+
+```text
+22 = Jaw
+23 = L_Eye
+24 = R_Eye
+```
+
+Face keypoints:
+
+```text
+55 = Nose
+56 = R_Eye_Keypoint
+57 = L_Eye_Keypoint
+58 = R_Ear
+59 = L_Ear
+```
+
+Facial landmarks:
+
+```text
+76 ... 126
+```
+
+---
+
+# 26. Why This Grouping Is Better
+
+This structure allows the project to support different experiments.
+
+For example:
+
+```text
+Experiment A:
+Core Body only
+
+Experiment B:
+Core Body + Feet
+
+Experiment C:
+Core Body + Hands
+
+Experiment D:
+Core Body + Feet + Hands
+
+Experiment E:
+Full 127
+
+Experiment F:
+Core Body + selected Face
+```
+
+No reconstruction has to be repeated.
+
+---
+
+# 27. Canonical Data Flow
+
+The complete project pipeline should therefore be interpreted as:
+
+```text
+AMASS
+  |
+  v
+SMPL-X Reconstruction
+  |
+  v
+Canonical SMPL-X 127
+  |
+  +------------------+
+  |                  |
+  v                  v
+Save Canonical     Extraction
+Representation       |
+                     +--> Core Body
+                     |
+                     +--> Feet / Contact
+                     |
+                     +--> Hands
+                     |
+                     +--> Face
+                     |
+                     +--> Custom
+                              |
+                              v
+                         Normalization
+                              |
+                              v
+                       Feature Extraction
+                              |
+                              v
+                       Contact Detection
+                              |
+                              v
+                       Motion Segmentation
+                              |
+                              v
+                         Dataset Creation
+                              |
+                              v
+                     Latent Objective Learning
+```
+
+---
+
+# 28. Responsibility of Stage 3
+
+The purpose of:
+
+```text
+03_human_motion
+```
+
+and specifically the joint extraction stage is NOT to redo SMPL-X reconstruction.
+
+The responsibilities are:
+
+```text
+1. Load canonical SMPL-X reconstruction
+2. Validate the 127-joint structure
+3. Use explicit joint mappings
+4. Generate derived representations
+5. Preserve metadata
+6. Save deterministic outputs
+```
+
+The reconstruction stage should be separated from extraction.
+
+---
+
+# 29. Important Rule for `03_extract_joints.py`
+
+Do NOT write:
+
+```python
+joints = joints[:, :24]
+```
+
+because:
+
+```text
+22 = Jaw
+23 = L_Eye
+24 = R_Eye
+```
+
+and this would mix facial joints into the main body representation.
+
+Instead use explicit index lists.
+
+For example:
+
+```python
+BODY_CORE = [
+    0,   # Pelvis
+    1,   # L_Hip
+    2,   # R_Hip
+    3,   # Spine1
+    4,   # L_Knee
+    5,   # R_Knee
+    6,   # Spine2
+    7,   # L_Ankle
+    8,   # R_Ankle
+    9,   # Spine3
+    10,  # L_Foot
+    11,  # R_Foot
+    12,  # Neck
+    13,  # L_Collar
+    14,  # R_Collar
+    15,  # Head
+    16,  # L_Shoulder
+    17,  # R_Shoulder
+    18,  # L_Elbow
+    19,  # R_Elbow
+    20,  # L_Wrist
+    21,  # R_Wrist
+]
+```
+
+---
+
+# 30. Recommended Named Index Configuration
+
+The extraction code should use a central configuration.
+
+Example:
+
+```python
+JOINTS = {
+    "Pelvis": 0,
+
+    "L_Hip": 1,
+    "R_Hip": 2,
+
+    "Spine1": 3,
+
+    "L_Knee": 4,
+    "R_Knee": 5,
+
+    "Spine2": 6,
+
+    "L_Ankle": 7,
+    "R_Ankle": 8,
+
+    "Spine3": 9,
+
+    "L_Foot": 10,
+    "R_Foot": 11,
+
+    "Neck": 12,
+
+    "L_Collar": 13,
+    "R_Collar": 14,
+
+    "Head": 15,
+
+    "L_Shoulder": 16,
+    "R_Shoulder": 17,
+
+    "L_Elbow": 18,
+    "R_Elbow": 19,
+
+    "L_Wrist": 20,
+    "R_Wrist": 21,
+
+    "Jaw": 22,
+    "L_Eye": 23,
+    "R_Eye": 24,
+
+    "L_Index1": 25,
+    "L_Index2": 26,
+    "L_Index3": 27,
+
+    "L_Middle1": 28,
+    "L_Middle2": 29,
+    "L_Middle3": 30,
+
+    "L_Pinky1": 31,
+    "L_Pinky2": 32,
+    "L_Pinky3": 33,
+
+    "L_Ring1": 34,
+    "L_Ring2": 35,
+    "L_Ring3": 36,
+
+    "L_Thumb1": 37,
+    "L_Thumb2": 38,
+    "L_Thumb3": 39,
+
+    "R_Index1": 40,
+    "R_Index2": 41,
+    "R_Index3": 42,
+
+    "R_Middle1": 43,
+    "R_Middle2": 44,
+    "R_Middle3": 45,
+
+    "R_Pinky1": 46,
+    "R_Pinky2": 47,
+    "R_Pinky3": 48,
+
+    "R_Ring1": 49,
+    "R_Ring2": 50,
+    "R_Ring3": 51,
+
+    "R_Thumb1": 52,
+    "R_Thumb2": 53,
+    "R_Thumb3": 54,
+}
+```
+
+---
+
+# 31. Extra Keypoint Configuration
+
+```python
+EXTRA_JOINTS = {
+    "Nose": 55,
+    "R_Eye_Keypoint": 56,
+    "L_Eye_Keypoint": 57,
+    "R_Ear": 58,
+    "L_Ear": 59,
+
+    "L_BigToe": 60,
+    "L_SmallToe": 61,
+    "L_Heel": 62,
+
+    "R_BigToe": 63,
+    "R_SmallToe": 64,
+    "R_Heel": 65,
+
+    "L_Thumb_Tip": 66,
+    "L_Index_Tip": 67,
+    "L_Middle_Tip": 68,
+    "L_Ring_Tip": 69,
+    "L_Pinky_Tip": 70,
+
+    "R_Thumb_Tip": 71,
+    "R_Index_Tip": 72,
+    "R_Middle_Tip": 73,
+    "R_Ring_Tip": 74,
+    "R_Pinky_Tip": 75,
+}
+```
+
+---
+
+# 32. Landmark Range
+
+Facial landmarks should be represented as:
+
+```python
+FACE_LANDMARKS = list(range(76, 127))
+```
+
+This is intentionally kept as a separate representation.
+
+---
+
+# 33. Suggested Extraction Groups
+
+The extraction configuration should conceptually contain:
+
+```python
+GROUPS = {
+    "core_body": [
+        0, 1, 2, 3,
+        4, 5,
+        6,
+        7, 8,
+        9,
+        10, 11,
+        12,
+        13, 14,
+        15,
+        16, 17,
+        18, 19,
+        20, 21,
+    ],
+
+    "feet": [
+        60, 61, 62,
+        63, 64, 65,
+    ],
+
+    "hands": list(range(25, 40))
+             + list(range(40, 55))
+             + list(range(66, 76)),
+
+    "face": [
+        22, 23, 24,
+        55, 56, 57, 58, 59,
+    ] + list(range(76, 127)),
+}
+```
+
+---
+
+# 34. Core Body Representation Size
+
+The current explicit core body definition contains:
+
+```text
+22 joints
+```
+
+This is intentional.
+
+We do not force an arbitrary 24-joint convention.
+
+If future experiments demonstrate that two additional points improve the representation, they can be added explicitly.
+
+For example:
+
+```text
+Core Body
++
+L_BigToe
++
+R_BigToe
+```
+
+would produce:
+
+```text
+24 points
+```
+
+but that should be considered a project-specific representation rather than assuming it is the universal SMPL-X 24-joint skeleton.
+
+---
+
+# 35. Contact Representation
+
+For contact detection, the most useful points are expected to be:
+
+```text
+L_Ankle
+R_Ankle
+
+L_Foot
+R_Foot
+
+L_BigToe
+L_SmallToe
+L_Heel
+
+R_BigToe
+R_SmallToe
+R_Heel
+```
+
+Corresponding indices:
+
+```text
+7
+8
+10
+11
+60
+61
+62
+63
+64
+65
+```
+
+This representation should remain available independently of the main body representation.
+
+---
+
+# 36. Hand Representation
+
+The hands consist of:
+
+```text
+Left hand:
+
+25 L_Index1
+26 L_Index2
+27 L_Index3
+
+28 L_Middle1
+29 L_Middle2
+30 L_Middle3
+
+31 L_Pinky1
+32 L_Pinky2
+33 L_Pinky3
+
+34 L_Ring1
+35 L_Ring2
+36 L_Ring3
+
+37 L_Thumb1
+38 L_Thumb2
+39 L_Thumb3
+
+66 L_Thumb_Tip
+67 L_Index_Tip
+68 L_Middle_Tip
+69 L_Ring_Tip
+70 L_Pinky_Tip
+```
+
+Right hand:
+
+```text
+40 R_Index1
+41 R_Index2
+42 R_Index3
+
+43 R_Middle1
+44 R_Middle2
+45 R_Middle3
+
+46 R_Pinky1
+47 R_Pinky2
+48 R_Pinky3
+
+49 R_Ring1
+50 R_Ring2
+51 R_Ring3
+
+52 R_Thumb1
+53 R_Thumb2
+54 R_Thumb3
+
+71 R_Thumb_Tip
+72 R_Index_Tip
+73 R_Middle_Tip
+74 R_Ring_Tip
+75 R_Pinky_Tip
+```
+
+---
+
+# 37. Face Representation
+
+The face is separated into:
+
+```text
+Kinematic face:
+22 Jaw
+23 L_Eye
+24 R_Eye
+```
+
+Vertex face keypoints:
+
+```text
+55 Nose
+56 R_Eye_Keypoint
+57 L_Eye_Keypoint
+58 R_Ear
+59 L_Ear
+```
+
+Detailed landmarks:
+
+```text
+76 ... 126
+```
+
+This separation prevents facial information from contaminating the main body representation.
+
+---
+
+# 38. `joint_mapper`
+
+The loaded model reports:
+
+```python
+print(m.joint_mapper)
+```
+
+Result:
+
+```text
+None
+```
+
+Therefore there is no additional dataset-specific joint mapping applied after the 127-joint construction.
+
+The relevant implementation is:
+
+```python
+if self.joint_mapper is not None:
+    joints = self.joint_mapper(
+        joints=joints,
+        vertices=vertices
+    )
+```
+
+Since:
+
+```text
+joint_mapper = None
+```
+
+the final 127-joint output is not remapped afterward.
+
+---
+
+# 39. Face Contour
+
+The loaded model reports:
+
+```python
+print(m.use_face_contour)
+```
+
+Result:
+
+```text
+False
+```
+
+Therefore dynamic face contour landmarks are not additionally appended to the 51 static landmarks.
+
+The observed output therefore remains:
+
+```text
+55 + 21 + 51 = 127
+```
+
+---
+
+# 40. Verification Script
+
+The following command verifies the entire structure:
+
+```python
+import smplx
+
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
+
+m = smplx.create(
+    p,
+    model_type="smplx",
+    gender="neutral",
+    num_betas=16,
+    use_pca=False,
+    ext="npz",
+)
+
+o = m()
+
+print("========== SMPL-X STRUCTURE ==========")
+print("NUM_JOINTS:", m.NUM_JOINTS)
+print("J_regressor:", tuple(m.J_regressor.shape))
+print("parents:", tuple(m.parents.shape))
+print("extra joints:", len(m.vertex_joint_selector.extra_joints_idxs))
+print("landmarks:", len(m.lmk_faces_idx))
+print("joint_mapper:", m.joint_mapper)
+print("use_face_contour:", m.use_face_contour)
+print("output:", tuple(o.joints.shape))
+
+expected = (
+    m.J_regressor.shape[0]
+    + len(m.vertex_joint_selector.extra_joints_idxs)
+    + len(m.lmk_faces_idx)
+)
+
+print("expected output joints:", expected)
+print("actual output joints:", o.joints.shape[1])
+print("=======================================")
+```
+
+Expected:
+
+```text
+NUM_JOINTS: 54
+J_regressor: (55, 10475)
+parents: (55,)
+extra joints: 21
+landmarks: 51
+joint_mapper: None
+use_face_contour: False
+output: (1, 127, 3)
+expected output joints: 127
+actual output joints: 127
+```
+
+---
+
+# 41. Command to Inspect the Model Mapping
+
+```python
+import numpy as np
+
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models\smplx\SMPLX_NEUTRAL.npz"
+
+d = np.load(p, allow_pickle=True)
+
+joint2num = d["joint2num"].item()
+
+print("joint2num:")
+for name, index in sorted(joint2num.items(), key=lambda x: x[1]):
+    print(f"{index:3d}  {name}")
+
+print()
+print("kintree_table shape:", d["kintree_table"].shape)
+print("kintree_table:")
+print(d["kintree_table"])
+```
+
+---
+
+# 42. Command to Inspect the Extra Vertices
+
+```python
+import smplx
+
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
+
+m = smplx.create(
+    p,
+    model_type="smplx",
+    gender="neutral",
+    num_betas=16,
+    use_pca=False,
+    ext="npz",
+)
+
+print("extra vertex indices:")
+print(m.vertex_joint_selector.extra_joints_idxs.tolist())
+```
+
+---
+
+# 43. Command to Inspect the 127 Output
+
+```python
+import smplx
+
+p = r"D:\1405\latent-objective-humanoid\03_human_motion\external\smplx\models"
+
+m = smplx.create(
+    p,
+    model_type="smplx",
+    gender="neutral",
+    num_betas=16,
+    use_pca=False,
+    ext="npz",
+)
+
+o = m()
+
+print("shape:", o.joints.shape)
+
+for i in range(o.joints.shape[1]):
+    print(i, o.joints[0, i].tolist())
+```
+
+This is useful for debugging and confirming that the output tensor contains exactly:
+
+```text
+127
+```
+
+points.
+
+---
+
+# 44. `JOINT_NAMES` Warning
+
+The Python package reports:
+
+```python
+import smplx.joint_names as j
+
+print(len(j.JOINT_NAMES))
+```
+
+Observed:
+
+```text
+144
+```
+
+This does NOT mean that the model outputs 144 joints.
+
+The authoritative runtime output is:
+
+```python
+m().joints.shape
+```
+
+which is:
+
+```text
+[1, 127, 3]
+```
+
+Therefore:
+
+```text
+JOINT_NAMES length
+```
+
+must not be confused with:
+
+```text
+actual output joint count
+```
+
+---
+
+# 45. Reproducibility Rules
+
+The following values are reference values for this project:
+
+```text
+Model:
+SMPL-X Neutral
+
+NUM_JOINTS:
+54
+
+J_regressor:
+55 × 10475
+
+Kinematic joints:
+55
+
+Extra vertex joints:
+21
+
+Facial landmarks:
+51
+
+Final output:
+127
+
+Parent array:
+55 entries
+
+kintree_table:
+2 × 55
+
+joint_mapper:
+None
+
+use_face_contour:
+False
+```
+
+The fundamental identity is:
+
+```text
+55 + 21 + 51 = 127
+```
+
+---
+
+# 46. Canonical Storage Principle
+
+The reconstruction stage should save the complete canonical output.
+
+Conceptually:
+
+```python
+np.savez_compressed(
+    output_file,
+    joints=joints,
+    fps=fps,
+    gender=gender,
+    model_type="smplx",
+    representation="smplx_127_joints",
+)
+```
+
+The exact storage schema may later include additional metadata such as:
+
+```text
+source_file
+subject
+sequence
+frame_count
+fps
+model_type
+gender
+joint_names
+joint_indices
+parents
+representation
+```
+
+The key requirement is that the 127-joint representation is not discarded.
+
+---
+
+# 47. Stage 3 Responsibility
+
+Stage 3 should work conceptually as:
+
+```text
+Input:
+Canonical SMPL-X reconstruction
+
+        |
+        v
+
+Validation:
+Is the representation 127 joints?
+
+        |
+        v
+
+Named extraction:
+
+        +--> Core Body
+        |
+        +--> Feet / Contact
+        |
+        +--> Hands
+        |
+        +--> Face
+        |
+        +--> Optional custom groups
+
+        |
+        v
+
+Save derived representations
+```
+
+---
+
+# 48. No Information Loss Rule
+
+The following operation is prohibited at the canonical stage:
+
+```python
+canonical = joints[:, :24]
+```
+
+The canonical representation must remain:
+
+```text
+127
+```
+
+Reduction is allowed only when generating a specific derived representation.
+
+---
+
+# 49. Recommended Project Data Hierarchy
+
+```text
+03_human_motion/
+│
+├── external/
+│   └── smplx/
+│       ├── models/
+│       └── smplx_repository/
+│
+├── scripts/
+│   ├── 01_prepare_amass.py
+│   ├── 02_smplx_reconstruction.py
+│   └── 03_extract_joints.py
+│
+├── data/
+│   ├── raw/
+│   ├── reconstructed/
+│   │   └── smplx_127/
+│   └── extracted/
+│       ├── core_body/
+│       ├── feet/
+│       ├── hands/
+│       ├── face/
+│       └── custom/
+│
+└── docs/
+    └── SMPLX_JOINT_STRUCTURE.md
+```
+
+The exact directory structure may be adapted to the existing project, but the conceptual separation should remain.
+
+---
+
+# 50. Recommended Extraction Output
+
+A reconstructed sequence should conceptually produce:
+
+```text
+reconstructed/
+    sequence_001.npz
+
+extracted/
+    core_body/
+        sequence_001.npz
+
+    feet/
+        sequence_001.npz
+
+    hands/
+        sequence_001.npz
+
+    face/
+        sequence_001.npz
+```
+
+This allows each downstream experiment to consume only what it needs.
+
+---
+
+# 51. Main Research Pipeline
+
+The complete research pipeline is:
+
+```text
+AMASS
+  |
+  v
+SMPL-X Reconstruction
+  |
+  v
+Canonical 127-Joint Representation
+  |
+  +----------------------------+
+  |            |               |
+  v            v               v
+Core Body    Hands           Face
+  |
+  v
+Feet / Contact Information
+  |
+  v
+Normalization
+  |
+  v
+Feature Extraction
+  |
+  v
+Contact Detection
+  |
+  v
+Motion Segmentation
+  |
+  v
+Dataset Creation
+  |
+  v
+Latent Objective Learning
+```
+
+The exact downstream combination is intentionally left flexible.
+
+---
+
+# 52. Future Extensibility
+
+The architecture intentionally supports future additions such as:
+
+```text
+Core Body + Hands
+Core Body + Feet
+Core Body + Hands + Feet
+Full Body
+Body + Face
+Full 127
+Custom subsets
+```
+
+without changing the reconstruction stage.
+
+This is one of the main reasons for preserving the canonical 127-joint output.
+
+---
+
+# 53. Final Representation Policy
+
+The final project policy is:
+
+```text
+1. Reconstruct SMPL-X once.
+
+2. Preserve all 127 output joints.
+
+3. Treat the 127-joint tensor as canonical.
+
+4. Never use the first N joints as an implicit representation.
+
+5. Use explicit named index mappings.
+
+6. Keep body, hands, feet, and face logically separate.
+
+7. Use feet/contact points explicitly for contact detection.
+
+8. Keep facial information available but separate from the main body-motion representation.
+
+9. Allow future experiments to add groups without rerunning SMPL-X reconstruction.
+
+10. Keep all mappings documented in code and this MD file.
+```
+
+---
+
+# 54. Definitive Numerical Summary
+
+```text
+====================================================
+SMPL-X REFERENCE VALUES
+====================================================
+
+Model:
+SMPL-X Neutral
+
+NUM_JOINTS:
+54
+
+J_regressor:
+55 × 10475
+
+Kinematic / LBS joints:
+55
+
+Extra vertex keypoints:
+21
+
+Facial landmarks:
+51
+
+Final output:
+127 × 3
+
+Kinematic parent entries:
+55
+
+kintree_table:
+2 × 55
+
+joint_mapper:
+None
+
+use_face_contour:
+False
+
+JOINT_NAMES in Python package:
+144
+
+Main canonical representation:
+127 joints
+
+Main body group:
+22 anatomical joints
+
+Feet/contact group:
+6 points
+
+Hands:
+30 kinematic finger joints + 10 fingertips
+
+Face:
+3 kinematic face joints
++ 5 face vertex keypoints
++ 51 facial landmarks
+====================================================
+```
+
+---
+
+# 55. Most Important Index Ranges
+
+For quick reference:
+
+```text
+====================================================
+INDEX RANGE        CONTENT
+====================================================
+
+0–54               55 LBS / kinematic joints
+
+55–59              Face vertex keypoints
+
+60–65              Feet keypoints
+
+66–75              Hand fingertips
+
+76–126             Facial landmarks
+
+0–126              Complete canonical SMPL-X output
+====================================================
+```
+
+---
+
+# 56. Most Important Body Indices
+
+```text
+0   Pelvis
+
+1   L_Hip
+2   R_Hip
+
+3   Spine1
+
+4   L_Knee
+5   R_Knee
+
+6   Spine2
+
+7   L_Ankle
+8   R_Ankle
+
+9   Spine3
+
+10  L_Foot
+11  R_Foot
+
+12  Neck
+
+13  L_Collar
+14  R_Collar
+
+15  Head
+
+16  L_Shoulder
+17  R_Shoulder
+
+18  L_Elbow
+19  R_Elbow
+
+20  L_Wrist
+21  R_Wrist
+```
+
+These are the core anatomical body joints.
+
+---
+
+# 57. Most Important Contact Indices
+
+```text
+7   L_Ankle
+8   R_Ankle
+
+10  L_Foot
+11  R_Foot
+
+60  L_BigToe
+61  L_SmallToe
+62  L_Heel
+
+63  R_BigToe
+64  R_SmallToe
+65  R_Heel
+```
+
+These should remain available for future contact detection.
+
+---
+
+# 58. Most Important Hand Indices
+
+```text
+Left hand:
+25–39
+66–70
+
+Right hand:
+40–54
+71–75
+```
+
+---
+
+# 59. Most Important Face Indices
+
+```text
+22  Jaw
+23  L_Eye
+24  R_Eye
+
+55  Nose
+56  R_Eye_Keypoint
+57  L_Eye_Keypoint
+58  R_Ear
+59  L_Ear
+
+76–126
+Facial landmarks
+```
+
+---
+
+# 60. Final Decision
+
+The project does NOT use:
+
+```text
+first 24 SMPL-X joints
+```
+
+as its canonical body representation.
 
 Instead:
 
-    Canonical:
-        127 joints
+```text
+SMPL-X 127
+     |
+     +--> explicit Core Body
+     |
+     +--> explicit Feet / Contact
+     |
+     +--> explicit Hands
+     |
+     +--> explicit Face
+```
 
-    Main body:
-        22 Core Body joints
+This avoids the earlier problem where:
 
-    Auxiliary:
-        Hands
-        Feet
-        Face
+```text
+22 = Jaw
+23 = L_Eye
+24 = R_Eye
+```
 
-This is a cleaner and more extensible design.
+could accidentally enter the main body skeleton.
 
-If a later experiment requires exactly 24, 25, 26, or another number of joints, a new named representation can be created from the canonical 127 without modifying the reconstruction stage.
+The core body is therefore explicitly selected from:
 
----
+```text
+0 ... 21
+```
 
-# 60. Final One-Line Summary
+giving:
 
-    AMASS
-    -> SMPL-X Reconstruction
-    -> 127 canonical joints
-    -> Core Body / Hands / Feet / Face
-    -> task-specific normalization
-    -> features
-    -> contact detection
-    -> motion segmentation
-    -> dataset
-    -> latent objective learning
+```text
+22 anatomical body joints
+```
 
-The most important rule is:
+and foot/contact points are maintained separately.
 
-    NEVER discard the canonical 127-joint representation.
-    ALWAYS derive smaller representations from it.
-
----
-
-# 61. Reproducibility Checklist
-
-Before modifying Stage 3, verify:
-
-    [ ] SMPL-X model path is correct
-    [ ] SMPLX_NEUTRAL.npz exists
-    [ ] J_regressor.shape == (55, 10475)
-    [ ] m.NUM_JOINTS == 54
-    [ ] extra joints == 21
-    [ ] facial landmarks == 51
-    [ ] final output == 127
-    [ ] output shape == [batch, 127, 3]
-    [ ] parent array length == 55
-    [ ] kintree_table.shape == (2, 55)
-    [ ] joint_mapper is None
-    [ ] use_face_contour is False
-    [ ] both eyes are preserved
-    [ ] hands are preserved
-    [ ] feet keypoints are preserved
-    [ ] facial landmarks are preserved
-    [ ] Core Body is defined by explicit indices
-    [ ] no information is discarded from canonical data
-    [ ] Stage 3 only performs extraction
+If a later experiment needs exactly 24 points, the additional two points will be explicitly selected according to the experiment rather than assuming that SMPL-X's first 24 indices constitute the correct representation.
 
 ---
 
-# 62. Final Rule for Future Development
+# 61. Final One-Line Architecture
 
-Any future representation must follow this pattern:
-
-    CANONICAL_127
-          |
-          v
-    explicit named indices
-          |
-          v
-    new representation
-
-Never change the canonical ordering merely to make a downstream representation convenient.
-
-The canonical SMPL-X ordering remains fixed.
-
-All project-specific conventions belong in Stage 3 and later.
+```text
+AMASS → SMPL-X Reconstruction → Canonical SMPL-X 127 → {Core Body, Feet/Contact, Hands, Face} → Normalization → Feature Extraction → Contact Detection → Motion Segmentation → Dataset Creation → Latent Objective Learning
+```
 
 ---
 
-# 63. Final Status
+# 62. Final One-Line Numerical Definition
 
-This document records the verified SMPL-X structure and the current project-level extraction policy.
-
-The current source of truth is:
-
-    SMPL-X 127-joint output
-
-The current primary representation is:
-
-    Core Body = 22 joints
-
-The current auxiliary representations are:
-
-    Hands
-    Feet
-    Face
-
-The architecture remains open to future additions.
-
-No future representation decision should require changing the canonical SMPL-X reconstruction.
+```text
+SMPL-X 127 = 55 LBS joints + 21 vertex keypoints + 51 facial landmarks
+```
 
 ---
 
-# 64. Stage 3 Reference
+# 63. Final Principle
 
-Implementation:
+```text
+RECONSTRUCT ONCE.
+PRESERVE 127.
+EXTRACT MANY.
+DELETE NOTHING AT THE CANONICAL STAGE.
+```
 
-[03_extract_joints.py](./03_extract_joints.py)
-
-Documentation:
-
-[SMPL-X Joint Structure and Extraction Specification](./SMPLX_JOINT_SPECIFICATION.md)
-
-Canonical principle:
-
-    127 -> derive views
-
-not:
-
-    127 -> delete information
+This is the definitive joint-structure and extraction policy for the current `latent-objective-humanoid` implementation.
