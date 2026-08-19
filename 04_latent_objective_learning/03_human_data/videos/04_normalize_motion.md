@@ -3,203 +3,123 @@
 **Project:** Latent Objective Humanoid  
 **Pipeline:** Human Data Processing  
 **Stage:** 04 — Motion Normalization  
+**Script:** `04_normalize_motion.py`  
 **Canonical Representation:** SMPL-X 127 Joints  
 **Status:** Completed  
 **Video:** https://youtu.be/Gka6i7_VcUs
 
 ---
 
-# 1. Purpose of This Document
+# 1. Purpose
 
-This document permanently records the complete design, motivation, implementation, data structure, normalization strategy, validation method, and output format of Stage 04 of the Latent Objective Humanoid project.
+Stage 04 converts the canonical SMPL-X 127-joint motion representation from Stage 03 into a normalized representation suitable for later processing and learning stages.
 
-The goal is that, even much later, this document can be opened independently and still provide a complete understanding of:
+The central design is:
 
-- What this stage is
-- Why this stage exists
-- What problem it solves
-- What the input data looks like
-- What the output data looks like
-- What normalization means in this project
-- Why root-centered motion is used
-- Why global root motion must be preserved separately
-- What information is stored inside every output NPZ
-- How the original motion can be reconstructed
-- What validation was performed
-- What was deliberately preserved
-- What was deliberately transformed
-- How this representation will be used by later stages
+    Local Body Motion
+        +
+    Preserved Global Root Motion
 
-This stage is therefore not simply a coordinate preprocessing step.
+The canonical representation is not reduced.
 
-It establishes the motion representation that later learning stages can rely on.
+The input:
 
----
+    full
+    [T,127,3]
 
-# 2. Stage Overview
+is transformed into:
 
-The input to this stage is the processed human-motion joint dataset produced by the previous human-data processing stage.
+    full
+    [T,127,3]
 
-Each input NPZ contains a canonical SMPL-X representation.
+where `full` becomes a root-centered, sequence-level body-scale-normalized representation.
 
-The canonical representation is:
+At the same time, the original root trajectory and several global-motion representations are explicitly preserved.
 
-    SMPL-X 127 joints
-    Shape: [T, 127, 3]
-
-where:
-
-- `T` = number of frames
-- `127` = number of canonical SMPL-X joints
-- `3` = XYZ coordinates
-
-The central design decision of this stage is:
-
-> Local body motion and global root motion are represented separately, rather than destroying global motion during root-centering.
-
-The resulting representation contains both:
-
-1. Local normalized body motion
-2. Global root motion information
-
-This distinction is fundamental.
+The transformation is deterministic and does not use a learned model.
 
 ---
 
-# 3. Why Normalization Is Necessary
+# 2. What This Stage Actually Does
 
-Raw human motion sequences can differ in several ways:
+For every input NPZ:
 
-- Different global positions
-- Different initial locations
-- Different body scales
-- Different recording locations
-- Different distances from the coordinate origin
-- Different global trajectories
-
-If raw coordinates are directly passed to a learning model, the model may spend capacity learning irrelevant variations such as:
-
-- "Where was the person standing in the recording space?"
-- "How far from the origin was the person?"
-- "What was the initial translation of this sequence?"
-
-Those variations are often not the actual body-motion objective.
-
-For example, two people can perform the same squat:
-
-    Person A:
-        starts at X = 0
-
-    Person B:
-        starts at X = 10
-
-The local body motion can be essentially identical even though the absolute coordinates are completely different.
-
-Therefore, the body motion should have a canonical local representation.
-
-However, simply removing the root position is also problematic because global locomotion is meaningful.
-
-For example:
-
-    Walking forward
-    Walking backward
-    Running
-    Jumping while translating
-    Changing global position
-    Moving along a trajectory
-
-must not be accidentally discarded.
-
-Therefore, the solution used in this stage is:
-
-    Normalize local body motion
-    +
-    Preserve global root motion separately
+1. Load the canonical `full` tensor.
+2. Validate that it has shape `[T,127,3]`.
+3. Extract root joint index `0`.
+4. Root-center the complete motion.
+5. Compute one body scale for the entire sequence.
+6. Normalize the root-centered local motion.
+7. Compute global root-motion features.
+8. Reconstruct the original motion.
+9. Measure reconstruction error.
+10. Reject the file if reconstruction error exceeds `1e-4`.
+11. Preserve the Stage 03 derived representations unchanged.
+12. Save the normalized NPZ.
+13. Record processing information in `_normalization_summary.json`.
 
 ---
 
-# 4. Core Representation Strategy
+# 3. Input
 
-The complete conceptual representation is:
-
-    Original SMPL-X Motion
-              |
-              |
-              +-----------------------------+
-              |                             |
-              v                             v
-        Local Body Motion             Global Root Motion
-              |                             |
-              v                             v
-        Root Centering               Root Position
-              |                       Root Displacement
-              v                       Root Velocity
-        Body Scale                    Normalized Trajectory
-        Normalization
-              |
-              v
-        `full`
-        [T,127,3]
-
-The important point is that `full` is intentionally a LOCAL representation after normalization.
-
-It is not intended to contain the absolute global position of the person.
-
-Global information is stored separately.
-
----
-
-# 5. Input Dataset Structure
-
-The input root is:
+Default input root:
 
     data/processed/joints/
 
-The dataset hierarchy is preserved.
-
-For example:
-
-    data/
-        processed/
-            joints/
-                ACCAD/
-                    Female1General_c3d/
-                        A1 - Stand_poses.npz
-                        A10 - lie to crouch_poses.npz
-                        A11 - crawl forward_poses.npz
-                        ...
-
-The Stage 04 script recursively searches for:
+The script recursively searches for:
 
     *.npz
 
-inside the input root.
+using:
 
-The corresponding normalized output hierarchy is preserved under:
+    input_root.rglob("*.npz")
 
-    data/processed/normalized/
+The input directory hierarchy is preserved in the output.
 
 For example:
 
-    joints/
-        ACCAD/
-            Female1General_c3d/
-                A1 - Stand_poses.npz
+    data/processed/joints/ACCAD/Female1General_c3d/A1 - Stand_poses.npz
 
 becomes:
 
-    normalized/
-        ACCAD/
-            Female1General_c3d/
-                A1 - Stand_poses.npz
-
-This makes it possible to map every normalized file back to its original source.
+    data/processed/normalized/ACCAD/Female1General_c3d/A1 - Stand_poses.npz
 
 ---
 
-# 6. Input NPZ Structure
+# 4. Output
 
-The canonical input file contains:
+Default output root:
+
+    data/processed/normalized/
+
+The relative path of every input NPZ is preserved.
+
+A processing summary is also written to:
+
+    data/processed/normalized/_normalization_summary.json
+
+---
+
+# 5. Canonical Representation
+
+The script explicitly defines:
+
+    CANONICAL_KEY = "full"
+
+    CANONICAL_JOINT_COUNT = 127
+
+    COORD_DIM = 3
+
+Therefore the required canonical tensor is:
+
+    full
+    [T,127,3]
+
+The script does not attempt to guess which tensor is canonical.
+
+If `full` is missing, processing fails.
+
+This is important because the input NPZ may contain multiple representations such as:
 
     full
     body_core
@@ -207,633 +127,251 @@ The canonical input file contains:
     hands
     face
 
-For example:
-
-    full            -> [T, 127, 3]
-    body_core       -> [T, 22, 3]
-    body_contact    -> [T, 6, 3]
-    hands           -> [T, 40, 3]
-    face            -> [T, 59, 3]
-
-The most important tensor is:
-
-    full
-
-because it is the canonical SMPL-X 127-joint representation.
-
-The other representations are derived subsets.
+Only `full` is treated as the canonical SMPL-X tensor.
 
 ---
 
-# 7. Canonical Representation
+# 6. Canonical Tensor Validation
 
-The canonical tensor is explicitly defined as:
+Before normalization, `full` is validated.
 
-    CANONICAL_KEY = "full"
+The following conditions are required:
 
-and:
+    1. It must be a NumPy array.
+    2. It must have exactly 3 dimensions.
+    3. Dimension 1 must contain 127 joints.
+    4. Dimension 2 must contain 3 coordinates.
+    5. The sequence must contain at least one frame.
+    6. It must contain no NaN values.
+    7. It must contain no Inf values.
 
-    CANONICAL_JOINT_COUNT = 127
-
-and:
-
-    COORD_DIM = 3
-
-Therefore the expected canonical tensor shape is:
+Required shape:
 
     [T,127,3]
 
-The normalization stage does NOT reduce the canonical joint representation.
-
-It does NOT convert:
-
-    127 joints -> 22 joints
-
-or:
-
-    127 joints -> another reduced skeleton
-
-Instead:
-
-    127 joints remain 127 joints
-
-throughout the normalization stage.
-
-This is an intentional design decision.
+If any condition fails, that file is marked as failed.
 
 ---
 
-# 8. Validation of the Canonical Tensor
+# 7. Root Joint
 
-Before normalization, the input `full` tensor is validated.
+The script explicitly defines:
 
-The following conditions must hold:
+    ROOT_JOINT_INDEX = 0
 
-1. The tensor must be a NumPy array.
-2. It must have exactly 3 dimensions.
-3. The second dimension must contain exactly 127 joints.
-4. The third dimension must contain exactly 3 coordinates.
-5. The sequence must contain at least one frame.
-6. The tensor must not contain NaN values.
-7. The tensor must not contain Inf values.
+Therefore the root is always:
 
-The required shape is therefore:
+    joints[:,0,:]
 
-    [T,127,3]
-
-If the canonical tensor does not satisfy these requirements, the file is marked as failed.
-
----
-
-# 9. The First Important Problem We Encountered
-
-The first version of the normalization script attempted to automatically find a joint tensor inside the NPZ.
-
-However, the input files contained:
-
-    ['full', 'body_core', 'body_contact', 'hands', 'face']
-
-The script could not safely infer which representation was canonical.
-
-The actual structure was then inspected directly.
-
-For example:
-
-    full            (360, 127, 3) float32
-    body_core       (360, 22, 3) float32
-    body_contact    (360, 6, 3) float32
-    hands           (360, 40, 3) float32
-    face            (360, 59, 3) float32
-
-This confirmed that:
-
-    full
-
-is the canonical representation.
-
-The script was therefore changed to explicitly use:
-
-    CANONICAL_KEY = "full"
-
-This is safer and more reproducible than trying to guess the canonical tensor.
-
----
-
-# 10. Root-Centered Local Motion
-
-The main local normalization operation is root-centering.
-
-The root joint is:
-
-    joint 0
-
-which represents the pelvis/root of the canonical representation.
-
-For every frame:
-
-    root_position[t] = joints[t,0]
-
-The root position has shape:
+The extracted root positions have shape:
 
     [T,3]
 
-The local body representation is computed as:
+They are stored as:
 
-    centered[t,j] = joints[t,j] - root_position[t]
-
-In vectorized form:
-
-    root_position = joints[:, 0:1, :]
-
-    centered = joints - root_position
-
-The resulting tensor remains:
-
-    [T,127,3]
+    root_positions
 
 ---
 
-# 11. What Root-Centering Means
+# 8. Original Root Positions
 
-Suppose a person walks forward.
+The function:
 
-In the original global representation:
+    compute_root_positions()
 
-    Frame 0:
-        person at X = 0
+extracts:
 
-    Frame 1:
-        person at X = 0.1
+    joints[:,0,:]
 
-    Frame 2:
-        person at X = 0.2
+and converts the result to `float32`.
 
-    Frame 3:
-        person at X = 0.3
-
-The whole body is translating through space.
-
-After root-centering, the root is placed at the origin for every frame.
+The important property is that these values are not modified.
 
 Therefore:
 
-    Frame 0:
-        root = [0,0,0]
-
-    Frame 1:
-        root = [0,0,0]
-
-    Frame 2:
-        root = [0,0,0]
-
-    Frame 3:
-        root = [0,0,0]
-
-The body configuration relative to the root remains.
-
-But the absolute translation of the root is no longer inside `full`.
-
-This is intentional.
-
----
-
-# 12. Why Walking Can Look Different After Normalization
-
-This explains an important visual observation made during validation.
-
-In the original motion, a person may visibly:
-
-    take a step
-    move forward
-    move backward
-    translate across the scene
-
-After root-centering, the same motion may appear to happen in place.
-
-For example:
-
-    ORIGINAL
-
-    Person
-       |
-       |-------> global translation
-
-
-    ROOT-CENTERED
-
-    Person
-       |
-       |
-       O
-      /|\
-      / \
-
-    The body motion remains,
-    but the global root translation is no longer inside `full`.
-
-This does NOT mean that the global motion was destroyed.
-
-The global motion is stored separately.
-
----
-
-# 13. Local Motion vs Global Motion
-
-This distinction is one of the most important concepts in this stage.
-
-## Local motion
-
-Local motion answers:
-
-> How are the body joints moving relative to the person's root?
-
-Examples:
-
-- Arm movement
-- Leg movement
-- Joint configuration
-- Crouching
-- Standing
-- Crawling
-- Limb articulation
-- Body deformation relative to the pelvis
-
-This is stored primarily in:
-
-    full
-
-after root-centering and body-scale normalization.
-
----
-
-## Global motion
-
-Global motion answers:
-
-> Where is the person's root moving in the environment?
-
-Examples:
-
-- Walking forward
-- Walking backward
-- Moving sideways
-- Running through the scene
-- Translating through space
-- Global trajectory
-- Root velocity
-
-This is represented by:
-
     root_positions
-    root_positions_normalized
-    root_displacement
-    root_velocity
 
-The two representations are complementary.
+contains the original global root/pelvis trajectory from the input `full` tensor.
 
----
+It is not centered.
 
-# 14. Sequence-Level Body Scale
+It is not scale-normalized.
 
-After root-centering, the sequence is normalized by a single body scale.
-
-The scale is computed across the entire sequence.
-
-First:
-
-    distances = norm(centered_joints)
-
-Then:
-
-    scale = max(distances)
-
-The important point is that there is:
-
-    ONE scale per sequence
-
-not:
-
-    ONE scale per frame
-
-This is critical.
+It remains in the original dataset coordinate system.
 
 ---
 
-# 15. Why Scale Is Sequence-Level
+# 9. Root-Centering
 
-If each frame were independently normalized, the body could artificially change size over time.
-
-For example:
-
-    Frame 1 -> scale = 1.0
-    Frame 2 -> scale = 1.1
-    Frame 3 -> scale = 0.9
-    Frame 4 -> scale = 1.2
-
-This could introduce unwanted temporal distortions.
-
-Instead, this pipeline computes:
-
-    scale = one scalar for the entire sequence
-
-and uses that same scalar for every frame.
-
-Therefore the temporal geometry of the motion is preserved.
-
----
-
-# 16. Local Normalized Representation
-
-The final normalized local motion is:
-
-    normalized = centered / body_scale
-
-or mathematically:
-
-    normalized[t,j] =
-        (original[t,j] - root_position[t])
-        / body_scale
-
-The resulting shape remains:
-
-    [T,127,3]
-
-and is stored as:
-
-    full
-
-The tensor is stored as:
-
-    float32
-
----
-
-# 17. Global Root Position
-
-The original root trajectory is preserved.
-
-For every frame:
-
-    root_positions[t] = original[t,0]
-
-Shape:
-
-    [T,3]
-
-This represents the root position in the original dataset coordinate system.
-
-This information is important because it contains global translation.
-
----
-
-# 18. Root Displacement
-
-The root displacement is measured relative to the initial frame.
-
-The formula is:
-
-    root_displacement[t] =
-        root_positions[t] - root_positions[0]
-
-Shape:
-
-    [T,3]
-
-Therefore:
-
-    root_displacement[0] = [0,0,0]
-
-This representation removes the arbitrary initial location while preserving the actual movement during the sequence.
-
-For example:
-
-    Frame 0 -> [0.0, 0.0, 0.0]
-    Frame 1 -> [0.1, 0.0, 0.0]
-    Frame 2 -> [0.2, 0.0, 0.0]
-    Frame 3 -> [0.3, 0.0, 0.0]
-
-This clearly represents forward movement.
-
----
-
-# 19. Normalized Global Trajectory
-
-A second global representation is:
-
-    root_positions_normalized
-
-This removes the initial global offset and normalizes the trajectory using the same sequence body scale.
+The local normalization starts by subtracting the root position from every joint in every frame.
 
 Conceptually:
 
-    root_positions_normalized =
-        (root_positions - root_positions[0])
-        / body_scale
-
-This means the global trajectory is:
-
-1. Independent of the arbitrary initial position.
-2. Consistent with the body-scale normalization.
-3. Still able to represent forward/backward/sideways translation.
-
-This gives a normalized global coordinate representation without putting global translation back into `full`.
-
----
-
-# 20. Root Velocity
-
-The root velocity is represented as the frame-to-frame change in root position.
-
-Conceptually:
-
-    root_velocity[t] =
-        root_positions[t] - root_positions[t-1]
-
-with the first frame handled consistently by the implementation.
-
-Shape:
-
-    [T,3]
-
-The current convention is:
-
-    dataset units per frame
-
-This is an important metadata convention.
-
-It means this tensor is not currently expressed in physical units such as meters/second unless the upstream dataset itself is calibrated that way.
-
-The current representation is:
-
-    displacement per frame
-
-in the coordinate units of the source dataset.
-
----
-
-# 21. Why Root Velocity Is Useful
-
-Root velocity can help later models distinguish:
-
-    Standing
-    Walking
-    Running
-    Moving forward
-    Moving backward
-    Stopping
-    Accelerating
-    Changing trajectory
-
-For example:
-
-    root_velocity ≈ 0
-
-suggests little global translation.
-
-While:
-
-    root_velocity > 0
-
-along the relevant direction indicates translation.
-
-Therefore root velocity provides a compact description of global locomotion dynamics.
-
----
-
-# 22. What Happens to Jumping?
-
-A visual question during validation was whether a jump appears different after normalization.
-
-This is expected.
-
-A jump can contain two different components:
-
-1. Local body configuration changes
-2. Global root translation
-
-The local body configuration remains inside:
-
-    full
-
-The global movement of the root remains inside:
-
-    root_positions
-    root_positions_normalized
-    root_displacement
-    root_velocity
-
-Therefore a jump should not be evaluated using only the normalized `full` tensor.
-
-The complete motion representation is:
-
-    Local body motion
-    +
-    Global root motion
-
-Both are needed to understand the complete physical trajectory.
-
----
-
-# 23. Reconstruction Principle
-
-A major requirement of this stage is that normalization should not irreversibly destroy information.
-
-The local normalized representation is:
-
-    full =
-        (original - root_position) / body_scale
-
-Therefore the original coordinates can be reconstructed as:
-
-    original =
-        full * body_scale
-        + root_position
-
-This is the fundamental reconstruction relationship.
-
----
-
-# 24. Reconstruction Check
-
-The implementation performs a reconstruction consistency check.
-
-Conceptually:
-
-    reconstructed =
-        normalized * body_scale
-        + root_positions
-
-Then:
-
-    reconstruction_error =
-        max(abs(reconstructed - original))
-
-The purpose is to verify that the normalization transformation is mathematically consistent.
-
----
-
-# 25. Reconstruction Results
-
-The test runs showed reconstruction errors such as:
-
-    5.9604644775e-08
+    root_positions[t] = joints[t,0]
 
 and:
 
-    1.1920928955e-07
+    centered[t,j] =
+        joints[t,j] - root_positions[t]
 
-These values are extremely small and are consistent with normal floating-point precision for float32 operations.
-
-Therefore the normalization pipeline successfully preserved the original coordinate information required for reconstruction.
-
-The important conclusion is:
-
-> Root-centering did not destroy the original global translation because the root trajectory was explicitly preserved.
-
----
-
-# 26. Output NPZ Structure
-
-Every normalized motion sequence is stored as one NPZ file.
-
-For example:
-
-    normalized/
-        ACCAD/
-            Female1General_c3d/
-                A1 - Stand_poses.npz
-
-The output file contains the following major groups of information.
-
----
-
-# 27. `full`
-
-Key:
-
-    full
-
-Shape:
+The resulting tensor is still:
 
     [T,127,3]
 
-Meaning:
+The root of every frame becomes:
 
-    Canonical SMPL-X 127-joint local motion.
+    [0,0,0]
 
-Transformation:
+because the root position has been subtracted from itself.
+
+---
+
+# 10. Local Representation
+
+After root-centering, the script computes one body scale for the entire sequence.
+
+Then:
+
+    normalized =
+        centered / body_scale
+
+The normalized tensor is stored as:
+
+    full
+
+Therefore the output `full` means:
 
     root-centered
     +
     sequence-level body-scale normalized
+    +
+    SMPL-X 127 joints
 
-This is the primary local motion tensor.
-
-It retains all 127 canonical joints.
+It is the primary local-motion representation produced by Stage 04.
 
 ---
 
-# 28. `root_positions`
+# 11. Exact Body Scale Definition
+
+The code computes:
+
+    distances = norm(centered_joints, axis=-1)
+
+Then:
+
+    body_scale = max(distances)
+
+Therefore:
+
+    body_scale =
+        maximum distance of any centered joint
+        across the complete sequence
+
+This produces exactly one scalar for the entire motion sequence.
+
+It is not computed independently per frame.
+
+It is not computed independently per joint.
+
+It is not a learned parameter.
+
+---
+
+# 12. Sequence-Level Scaling
+
+The body scale is deliberately sequence-level.
+
+For example, if a sequence has:
+
+    T = 1000
+
+frames, there is still only:
+
+    one body_scale
+
+for all 1000 frames.
+
+The script does not perform:
+
+    frame 1 -> scale 1
+    frame 2 -> scale 2
+    frame 3 -> scale 3
+
+Instead:
+
+    entire sequence -> one scalar
+
+This preserves temporal scale consistency.
+
+---
+
+# 13. Exact Local Normalization Formula
+
+The complete local transformation is:
+
+    root_positions[t] = joints[t,0]
+
+    centered[t,j] =
+        joints[t,j] - root_positions[t]
+
+    body_scale =
+        max(norm(centered))
+
+    full[t,j] =
+        centered[t,j] / body_scale
+
+Therefore:
+
+    full =
+        (original - root_position) / body_scale
+
+with broadcasting over the joint dimension.
+
+---
+
+# 14. What Happens to the Root in `full`
+
+Because:
+
+    centered[t,0] =
+        joints[t,0] - joints[t,0]
+
+the root joint in normalized `full` is:
+
+    [0,0,0]
+
+for every frame.
+
+Therefore the global translation of the root is intentionally removed from `full`.
+
+This is not considered loss of global motion because the root trajectory is stored separately.
+
+---
+
+# 15. Global Motion Is Preserved Separately
+
+The script explicitly computes global root-motion features.
+
+These are:
+
+    root_positions
+    root_positions_normalized
+    root_displacement
+    root_displacement_normalized
+    root_velocity
+    root_velocity_normalized
+
+Therefore the output separates:
+
+    Local body motion
+
+from:
+
+    Global root motion
+
+---
+
+# 16. `root_positions`
 
 Key:
 
@@ -845,38 +383,19 @@ Shape:
 
 Meaning:
 
-    Original global root/pelvis position for every frame.
+    Original global root trajectory.
 
-This preserves the original global trajectory.
+It is directly extracted from:
 
-It is not root-centered.
+    joints[:,0,:]
 
-It is stored in the original dataset coordinate system.
+No initial-offset removal is applied.
 
----
-
-# 29. `root_positions_normalized`
-
-Key:
-
-    root_positions_normalized
-
-Shape:
-
-    [T,3]
-
-Meaning:
-
-    Global root trajectory after:
-
-    1. Removing the initial offset.
-    2. Applying sequence body-scale normalization.
-
-This provides a normalized global trajectory.
+No body-scale normalization is applied.
 
 ---
 
-# 30. `root_displacement`
+# 17. `root_displacement`
 
 Key:
 
@@ -886,24 +405,94 @@ Shape:
 
     [T,3]
 
-Meaning:
-
-    Root movement relative to the first frame.
-
-Formula:
+Definition:
 
     root_displacement[t] =
         root_positions[t] - root_positions[0]
 
-The first frame is therefore:
+Therefore:
 
-    [0,0,0]
+    root_displacement[0] =
+        [0,0,0]
 
-This representation is particularly useful for describing how far the person has moved during the sequence.
+This removes only the arbitrary initial global offset.
+
+The movement occurring after the first frame remains.
+
+It can represent:
+
+    forward motion
+    backward motion
+    left/right motion
+    vertical movement
+    rising/falling
+    jumping
+    other root translation
 
 ---
 
-# 31. `root_velocity`
+# 18. `root_positions_normalized`
+
+Key:
+
+    root_positions_normalized
+
+Shape:
+
+    [T,3]
+
+Important:
+
+Despite its name, this is not the original root position simply divided by scale.
+
+The implementation is:
+
+    root_positions_normalized =
+        root_displacement / body_scale
+
+Therefore the initial root position is first removed.
+
+At frame 0:
+
+    root_positions_normalized[0] =
+        [0,0,0]
+
+The representation is therefore:
+
+    initial-offset removed
+    +
+    sequence body-scale normalized
+
+---
+
+# 19. `root_displacement_normalized`
+
+Key:
+
+    root_displacement_normalized
+
+Shape:
+
+    [T,3]
+
+Definition:
+
+    root_displacement_normalized =
+        root_displacement / body_scale
+
+Therefore, in the current implementation:
+
+    root_displacement_normalized
+        ==
+    root_positions_normalized
+
+numerically, because both are computed from the same displacement and the same body scale.
+
+Both are nevertheless saved explicitly under separate keys.
+
+---
+
+# 20. `root_velocity`
 
 Key:
 
@@ -913,111 +502,188 @@ Shape:
 
     [T,3]
 
-Meaning:
+The implementation computes frame-to-frame root displacement:
 
-    Frame-to-frame root translation.
+    root_velocity[t] =
+        root_positions[t]
+        - root_positions[t-1]
 
-Current convention:
+The first frame is explicitly initialized as:
 
-    dataset units per frame
+    root_velocity[0] =
+        [0,0,0]
 
-This represents global locomotion dynamics.
+Therefore this tensor represents:
+
+    displacement per frame
+
+It is not physical velocity in meters/second.
 
 ---
 
-# 32. `body_scale`
+# 21. Root Velocity Units
+
+The script explicitly stores the metadata:
+
+    root_velocity_unit =
+        dataset_units_per_frame
+
+This means the interpretation is:
+
+    dataset coordinate units / frame
+
+The script does not know FPS.
+
+It does not convert the values to:
+
+    meters/second
+
+Therefore the term `velocity` in this stage should be understood as frame-to-frame root displacement.
+
+---
+
+# 22. `root_velocity_normalized`
+
+Key:
+
+    root_velocity_normalized
+
+Shape:
+
+    [T,3]
+
+Definition:
+
+    root_velocity_normalized =
+        root_velocity / body_scale
+
+Therefore this represents frame-to-frame root displacement after sequence body-scale normalization.
+
+Its units are effectively:
+
+    normalized dataset units / frame
+
+with the normalization determined by `body_scale`.
+
+---
+
+# 23. Complete Global Feature Set
+
+The exact global feature dictionary generated by the code is:
+
+    root_positions
+    root_positions_normalized
+    root_displacement
+    root_displacement_normalized
+    root_velocity
+    root_velocity_normalized
+
+All six are saved into every successfully processed NPZ.
+
+---
+
+# 24. Complete Output NPZ Structure
+
+A successful normalized NPZ contains the following categories.
+
+## Main local representation
+
+    full
+
+## Global root motion
+
+    root_positions
+    root_positions_normalized
+    root_displacement
+    root_displacement_normalized
+    root_velocity
+    root_velocity_normalized
+
+## Scale
+
+    body_scale
+
+## Metadata
+
+    source
+    representation
+    normalization
+    root_joint_index
+    global_motion
+    root_velocity_unit
+
+## Reconstruction metrics
+
+    reconstruction_max_abs_error
+    reconstruction_mean_abs_error
+    reconstruction_rmse
+
+## Preserved Stage 03 representations
+
+    body_core
+    body_contact
+    hands
+    face
+
+The last four are included only if they existed in the input NPZ.
+
+---
+
+# 25. Derived Representations
+
+The script defines:
+
+    DERIVED_KEYS = (
+        "body_core",
+        "body_contact",
+        "hands",
+        "face",
+    )
+
+These tensors are loaded from the input.
+
+The code does not normalize them.
+
+It does not root-center them.
+
+It does not divide them by `body_scale`.
+
+It simply preserves them and writes them into the output NPZ.
+
+Therefore their values remain exactly as supplied by Stage 03.
+
+This is an important distinction:
+
+    `full`
+        -> normalized by Stage 04
+
+    body_core
+    body_contact
+    hands
+    face
+        -> preserved unchanged
+
+---
+
+# 26. `body_scale`
 
 Key:
 
     body_scale
 
-Shape:
+Type:
 
-    scalar
-
-Meaning:
-
-    The single sequence-level scale factor used to normalize the local body motion.
-
-There is one value for the entire sequence.
-
-It is not recomputed independently for every frame.
-
----
-
-# 33. `body_core`
-
-Key:
-
-    body_core
-
-Typical shape:
-
-    [T,22,3]
+    float32 scalar
 
 Meaning:
 
-    Previously extracted body-core representation.
+    Sequence-level maximum centered-joint distance
 
-It is preserved in the normalized output so downstream stages can access it without repeating extraction.
-
----
-
-# 34. `body_contact`
-
-Key:
-
-    body_contact
-
-Typical shape:
-
-    [T,6,3]
-
-Meaning:
-
-    Contact-related body joints.
-
-It is preserved as part of the original processed representation.
+This scalar is required to reconstruct the original `full` representation.
 
 ---
 
-# 35. `hands`
-
-Key:
-
-    hands
-
-Typical shape:
-
-    [T,40,3]
-
-Meaning:
-
-    Hand-related joints.
-
-This representation is preserved so that downstream stages can use hand information without recomputing it.
-
----
-
-# 36. `face`
-
-Key:
-
-    face
-
-Typical shape:
-
-    [T,59,3]
-
-Meaning:
-
-    Face-related joints.
-
-This representation is also preserved unchanged.
-
----
-
-# 37. `source`
+# 27. Metadata: `source`
 
 Key:
 
@@ -1025,19 +691,13 @@ Key:
 
 Meaning:
 
-    Original input file path.
+    Original input file path
 
-This provides traceability between the normalized output and the original dataset file.
-
-For example:
-
-    data/processed/joints/ACCAD/...
-    
-This makes debugging and dataset auditing easier.
+It provides traceability between the normalized file and the source NPZ.
 
 ---
 
-# 38. `representation`
+# 28. Metadata: `representation`
 
 Key:
 
@@ -1047,15 +707,11 @@ Value:
 
     smplx_127
 
-Meaning:
-
-    The canonical representation used by the file is SMPL-X 127 joints.
-
-This is explicit metadata rather than something that must be inferred later.
+This explicitly identifies the canonical representation.
 
 ---
 
-# 39. `normalization`
+# 29. Metadata: `normalization`
 
 Key:
 
@@ -1063,644 +719,512 @@ Key:
 
 Value:
 
-    root_centered_sequence_body_scale
+    local_root_centered_sequence_body_scale
 
-Meaning:
-
-    The local body representation was:
-
-    1. Root-centered
-    2. Normalized using sequence-level body scale
-
-This records the transformation convention used to create the file.
+This records the exact normalization convention used by the script.
 
 ---
 
-# 40. Complete NPZ Inventory
+# 30. Metadata: `root_joint_index`
 
-Therefore, conceptually, every normalized NPZ contains:
+Key:
 
-    full
-    root_positions
-    root_positions_normalized
-    root_displacement
-    root_velocity
-    body_scale
-    body_core
-    body_contact
-    hands
-    face
-    source
-    representation
-    normalization
+    root_joint_index
 
-The exact tensor shapes depend on `T`, the number of frames in the sequence, but the semantic structure remains the same.
+Value:
+
+    0
+
+This explicitly records which canonical joint was treated as the root.
 
 ---
 
-# 41. Example of One Output File
+# 31. Metadata: `global_motion`
 
-For a sequence with:
+Key:
 
-    T = 360
+    global_motion
 
-the main tensors are:
+Value:
 
-    full
-        (360, 127, 3)
+    preserved
 
-    root_positions
-        (360, 3)
+This records that global root motion was intentionally retained.
 
-    root_positions_normalized
-        (360, 3)
+---
 
-    root_displacement
-        (360, 3)
+# 32. Metadata: `root_velocity_unit`
 
-    root_velocity
-        (360, 3)
+Key:
+
+    root_velocity_unit
+
+Value:
+
+    dataset_units_per_frame
+
+This prevents later stages from incorrectly interpreting `root_velocity` as physical velocity.
+
+---
+
+# 33. Reconstruction
+
+One of the most important parts of Stage 04 is that the transformation is reversible.
+
+The local normalization is:
+
+    full =
+        (original - root_position) / body_scale
+
+Therefore the original motion can be reconstructed as:
+
+    reconstructed =
+        full * body_scale
+        + root_positions
+
+More explicitly:
+
+    reconstructed[t,j] =
+        full[t,j] * body_scale
+        + root_positions[t]
+
+---
+
+# 34. Reconstruction Error
+
+After normalization, the script reconstructs the original motion.
+
+It then computes three metrics:
+
+    max_abs_error
+    mean_abs_error
+    rmse
+
+The difference is calculated between:
+
+    reconstructed
 
 and:
 
-    body_scale
-        scalar
+    original
 
-The preserved derived representations are:
-
-    body_core
-        (360, 22, 3)
-
-    body_contact
-        (360, 6, 3)
-
-    hands
-        (360, 40, 3)
-
-    face
-        (360, 59, 3)
+using float64 for the error calculation.
 
 ---
 
-# 42. Important Design Decision: Do Not Reduce `full`
+# 35. Reconstruction Safety Threshold
 
-The canonical representation remains:
+The script has an explicit safety check:
+
+    max_abs_error <= 1e-4
+
+If:
+
+    max_abs_error > 1e-4
+
+the file fails processing.
+
+Therefore reconstruction is not merely logged.
+
+It is an actual validity condition for the output.
+
+---
+
+# 36. Reconstruction Metrics Saved in NPZ
+
+The following keys are written into every successful output:
+
+    reconstruction_max_abs_error
+
+    reconstruction_mean_abs_error
+
+    reconstruction_rmse
+
+Therefore the output file itself contains evidence of reconstruction quality.
+
+---
+
+# 37. What Reconstruction Proves
+
+The reconstruction check verifies that:
+
+    normalized local representation
+    +
+    body scale
+    +
+    original root trajectory
+
+are sufficient to reconstruct the original canonical motion within the defined numerical tolerance.
+
+The important relationship is:
+
+    original ≈ full * body_scale + root_positions
+
+---
+
+# 38. No Canonical Information Reduction
+
+The script explicitly reports:
+
+    Canonical joint information will NOT be reduced.
+
+The output remains:
 
     [T,127,3]
 
-This is intentional.
+There is no transformation such as:
 
-Although a reduced body representation such as:
+    127 -> 22
 
-    [T,22,3]
+inside Stage 04.
 
-could be easier for some models, reducing the canonical data at this stage would permanently discard information.
-
-The project therefore keeps:
-
-    full = 127 joints
-
-and provides reduced/derived representations separately.
-
-This keeps the normalized dataset flexible for future experiments.
+The canonical SMPL-X 127 representation is retained.
 
 ---
 
-# 43. Why We Preserve the Derived Representations
+# 39. Temporal Dimension
 
-The input already contains:
+The script does not perform temporal resampling.
 
-    body_core
-    body_contact
-    hands
-    face
+It does not:
 
-Instead of throwing these away, Stage 04 preserves them.
+    crop frames
+    remove frames
+    interpolate frames
+    reorder frames
+    downsample frames
 
-This gives downstream stages access to:
+Therefore:
 
-    Full canonical representation
-    +
-    Body subset
-    +
-    Contact subset
-    +
-    Hand subset
-    +
-    Face subset
+    input T
+        ==
+    output T
 
-without requiring the extraction stage to be repeated.
+For example:
+
+    [2399,127,3]
+
+remains:
+
+    [2399,127,3]
 
 ---
 
-# 44. Data Flow
+# 40. No Learned Model
 
-The complete Stage 04 data flow is:
+Stage 04 does not train or execute a neural network.
+
+There is:
+
+    no encoder
+    no decoder
+    no latent model
+    no optimizer
+    no training loop
+    no learned normalization
+
+Everything is deterministic NumPy-based preprocessing.
+
+---
+
+# 41. Data Flow
+
+The exact conceptual flow is:
 
     Input NPZ
         |
         v
-    Load `full`
+    Read `full`
         |
         v
     Validate [T,127,3]
         |
         v
-    Extract root position
+    Extract joint 0
         |
-        +--------------------------+
-        |                          |
-        v                          v
-    Root-center               Preserve root
-        |                          |
-        v                          v
-    Compute sequence          root_positions
-    body scale
+        +------------------------------+
+        |                              |
+        v                              v
+    root_positions              Root-center motion
+        |                              |
+        |                              v
+        |                       Compute body_scale
+        |                              |
+        |                              v
+        |                       Normalize `full`
+        |                              |
+        |                              v
+        |                         normalized full
         |
-        v
-    Normalize local body
+        +--> root_displacement
         |
-        v
-    `full`
+        +--> root_positions_normalized
         |
-        +--------------------------+
-        |                          |
-        v                          v
-    Save local motion       Save global motion
-                               |
-                               +--> root_positions
-                               |
-                               +--> root_positions_normalized
-                               |
-                               +--> root_displacement
-                               |
-                               +--> root_velocity
-                               |
-                               +--> body_scale
+        +--> root_velocity
+        |
+        +--> root_velocity_normalized
+        |
+        +--> root_displacement_normalized
         |
         v
-    Preserve derived data
-        |
-        +--> body_core
-        +--> body_contact
-        +--> hands
-        +--> face
+    Reconstruction
         |
         v
-    Reconstruction Check
+    Error calculation
+        |
+        v
+    Safety threshold
+        |
+        v
+    Preserve Stage 03 derived tensors
         |
         v
     Save normalized NPZ
 
 ---
 
-# 45. What Is Normalized?
+# 42. Local vs Global
 
-The following is normalized:
+The fundamental separation is:
 
-    Local body coordinates
-
-Specifically:
+    LOCAL
 
     full
 
-using:
+versus:
 
-    root-centering
-    +
-    sequence-level body scale
-
-The normalized global trajectory is also available as:
-
-    root_positions_normalized
-
----
-
-# 46. What Is Preserved in Original Coordinates?
-
-The original global root trajectory is preserved as:
+    GLOBAL
 
     root_positions
-
-This is important because it provides access to the original global coordinate system.
-
-Therefore we have both:
-
-    Original global root trajectory
-
-and:
-
-    Normalized global root trajectory
-
----
-
-# 47. What Is Not Removed?
-
-The normalization stage does NOT remove:
-
-    Joint identity
-    Joint count
-    Temporal ordering
-    Frame count
-    Local body motion
-    Global root trajectory
-    Root displacement
-    Root velocity
-    Hand information
-    Face information
-    Contact information
-
-The canonical 127-joint structure remains intact.
-
----
-
-# 48. What Is Removed from `full`?
-
-The following is intentionally removed from `full`:
-
-    Per-frame global root translation
-
-Because `full` is converted into a root-relative representation.
-
-This is not considered information loss because the root trajectory is stored separately.
-
----
-
-# 49. Why This Representation Is Better for Learning
-
-The representation separates two fundamentally different sources of variation.
-
-## Body configuration
-
-Stored in:
-
-    full
-
-This captures:
-
-    pose
-    articulation
-    local body dynamics
-
-## Global locomotion
-
-Stored in:
-
     root_positions_normalized
     root_displacement
+    root_displacement_normalized
     root_velocity
+    root_velocity_normalized
 
-This captures:
-
-    translation
-    trajectory
-    global locomotion
-
-A future model can therefore choose whether it needs:
-
-    local motion only
-
-or:
-
-    local motion + global trajectory
-
-without requiring a different dataset representation.
+This allows later stages to decide whether they need local body motion, global locomotion, or both.
 
 ---
 
-# 50. Example: Walking Forward
+# 43. Example: Walking Forward
 
-Suppose a person walks forward.
+Suppose:
 
-Original:
+    root_positions:
 
-    Root:
-        X = 0.0
-        X = 0.1
-        X = 0.2
-        X = 0.3
+        frame 0 -> X = 0.0
+        frame 1 -> X = 0.1
+        frame 2 -> X = 0.2
+        frame 3 -> X = 0.3
 
-Local normalized body:
-
-    full
-
-contains the changing leg and body configuration.
-
-Global information:
+Then:
 
     root_displacement:
+
         0.0
         0.1
         0.2
         0.3
 
-Therefore:
+The local `full` representation does not contain this absolute root translation because it is root-centered.
 
-    `full`
-        tells us how the body is moving
-
-while:
-
-    `root_displacement`
-        tells us where the body is moving
-
-Together they describe the complete motion.
+The global information remains in the root-motion tensors.
 
 ---
 
-# 51. Example: Same Walk at a Different Starting Position
+# 44. Example: Starting at a Different Global Position
 
-Consider two sequences.
+Suppose another sequence starts at:
 
-Sequence A:
+    X = 100
 
-    starts at X = 0
+and then moves:
 
-Sequence B:
+    100.0
+    100.1
+    100.2
+    100.3
 
-    starts at X = 100
-
-If the person performs the same local walking motion, the root-centered representation can be very similar.
-
-This is desirable because the model should not need to learn:
-
-    "X = 100 means a different walking motion."
-
-Instead:
-
-    Local motion -> `full`
-
-and:
-
-    Global trajectory -> root information
-
-are treated separately.
-
----
-
-# 52. Example: Walking Backward
-
-If the person walks backward, the local body motion may look similar to another sequence, but the global root trajectory has the opposite direction.
-
-This information is preserved through:
+Its:
 
     root_displacement
-    root_velocity
+
+is still:
+
+    0.0
+    0.1
+    0.2
+    0.3
+
+Therefore the arbitrary initial world offset is separated from the actual movement.
+
+The original starting location remains available through:
+
+    root_positions
+
+while the offset-independent trajectory is available through:
+
+    root_displacement
+
+and the normalized global trajectory is available through:
+
     root_positions_normalized
 
-Therefore backward motion is not confused with stationary motion simply because the body is root-centered.
-
 ---
 
-# 53. Example: Standing Still
+# 45. Example: Standing Still
 
-For a standing sequence:
+If the root does not move:
 
-    root_velocity ≈ 0
+    root_positions[t]
+        ≈
+    root_positions[0]
+
+then:
+
+    root_displacement
+        ≈ 0
 
 and:
 
-    root_displacement ≈ constant / near zero
+    root_velocity
+        ≈ 0
 
-while:
+while `full` still contains the root-centered body configuration.
 
-    full
+---
 
-still contains the body configuration.
+# 46. Example: Jumping
 
-This gives the future model a clean distinction between:
+A jump can involve changes in the root's global position.
 
-    body pose
+Those changes remain in:
+
+    root_displacement
 
 and:
 
-    global movement.
+    root_velocity
 
----
-
-# 54. Example: Crawling
-
-For crawling, the body may undergo large local configuration changes.
-
-The normalized:
+The local body configuration remains in:
 
     full
 
-captures these body-relative changes.
-
-The global root trajectory captures whether the person is:
-
-    crawling forward
-    crawling backward
-    remaining approximately stationary
-
-This is particularly useful because crawling can involve substantial changes in body configuration while also producing meaningful translation.
+Therefore the global vertical component is not removed from the overall Stage 04 representation.
 
 ---
 
-# 55. Example: Jumping
+# 47. Important Clarification About Visualization
 
-A jump can be decomposed into:
+The Python script itself does not create a visualization.
 
-    Local:
-        body configuration changes
+It performs:
 
-    Global:
-        root trajectory / vertical movement
+    loading
+    validation
+    normalization
+    global feature extraction
+    reconstruction
+    error checking
+    NPZ saving
+    JSON summary generation
 
-Therefore both components are retained.
+Therefore any visual execution shown in the Stage 04 video should not be described as a rendering operation performed directly by `04_normalize_motion.py`.
 
-The normalized visualization of `full` should not be interpreted as the complete global motion by itself.
-
-The complete motion is:
-
-    full
-    +
-    root motion
-
----
-
-# 56. Why We Do Not Normalize Each Frame Independently
-
-Per-frame normalization would be problematic.
-
-For example, if each frame were independently scaled, the same body could appear to change scale during the sequence.
-
-This could create artificial temporal effects.
-
-Instead:
-
-    one body scale
-    per sequence
-
-is computed.
-
-Therefore temporal consistency is preserved.
+The script itself is a preprocessing and validation script.
 
 ---
 
-# 57. Why We Do Not Simply Normalize Everything to the Origin
+# 48. Output Path Preservation
 
-Another possible approach would be to force the complete motion sequence into a fixed global coordinate system and discard the original root trajectory.
+For every input:
 
-That would make visualization simpler but would destroy useful locomotion information.
+    input_path
 
-The current method is better because:
+the script computes its path relative to:
 
-    Local body motion
-        ->
-        canonicalized
+    input_root
 
-while:
+and appends that relative path to:
 
-    Global root motion
-        ->
-        explicitly preserved
+    output_root
 
-This is a deliberate separation rather than an accidental side effect.
+Therefore the dataset hierarchy is preserved.
+
+This allows normalized samples to remain directly traceable to their original location.
 
 ---
 
-# 58. Validation Strategy
+# 49. Processing Multiple Files
 
-Stage 04 uses two complementary validation methods.
+The script recursively finds all NPZ files.
 
-## Visual validation
+They are sorted before processing.
 
-The normalized sequences were visually inspected.
+For every file:
 
-The expected behavior is:
+    process_one()
 
-    Body remains anatomically and temporally coherent.
+is called independently.
 
-The global translation may disappear from `full` because `full` is root-centered.
+If processing succeeds:
 
-This is expected.
+    processed += 1
 
-## Numerical validation
+If an exception occurs:
 
-The original motion is reconstructed from the normalized representation.
+    failed += 1
 
-The maximum reconstruction error is measured.
-
-This provides a much stronger validation than visual inspection alone.
+The failed file is recorded and processing continues.
 
 ---
 
-# 59. Numerical Validation Result
+# 50. `--limit`
 
-The test run produced:
+The script supports:
 
-    reconstruction max error:
-        ~5.96e-08
-        ~1.19e-07
+    --limit N
 
-These errors are effectively zero for the float32 representation used.
-
-Therefore the transformation is numerically consistent.
-
----
-
-# 60. Test Run
-
-The pipeline was tested on five files.
-
-The test included:
-
-    A1 - Stand_poses.npz
-    A10 - lie to crouch_poses.npz
-    A11 - crawl forward_poses.npz
-    A12 - crawl backwards_poses.npz
-    A14 - stand to skip_poses.npz
-
-The result was:
-
-    Processed : 5
-    Failed    : 0
-
-This confirmed that the corrected canonical-key handling and normalization pipeline worked successfully on the test subset.
-
----
-
-# 61. Example Test Shapes
-
-The test sequences included different temporal lengths.
-
-Examples:
-
-    A1:
-        [360,127,3]
-
-    A10:
-        [524,127,3]
-
-    A11:
-        [2399,127,3]
-
-    A12:
-        [2647,127,3]
-
-    A14:
-        [618,127,3]
-
-The normalization pipeline preserves the frame count.
+This limits the number of NPZ files processed.
 
 For example:
 
-    [2399,127,3]
-        ->
-    [2399,127,3]
+    python 04_normalize_motion.py --limit 5
 
-No temporal downsampling or frame removal is performed in this stage.
+processes at most five files.
 
----
+The option is useful for:
 
-# 62. Important Property: Temporal Information Is Preserved
+    debugging
+    validation
+    testing
+    quick pipeline checks
 
-The normalization stage does not:
-
-    resample
-    crop
-    downsample
-    reorder
-    interpolate
-    remove frames
-
-The temporal dimension remains:
-
-    T -> T
-
-Therefore:
-
-    [T,127,3]
-
-becomes:
-
-    [T,127,3]
+It does not change the normalization algorithm.
 
 ---
 
-# 63. Output Directory
+# 51. Default Paths
 
-The default output directory is:
+If no command-line paths are supplied:
 
-    data/processed/normalized/
+    input_root =
+        project_root/data/processed/joints
 
-The directory hierarchy from the input dataset is preserved.
+    output_root =
+        project_root/data/processed/normalized
 
-A summary file is also created:
+The project root is derived from the script location.
+
+---
+
+# 52. Summary JSON
+
+At the end of processing, the script writes:
 
     _normalization_summary.json
 
-inside the normalized root.
-
----
-
-# 64. Normalization Summary
-
-The summary JSON records information about the processing run.
-
-It includes:
+The summary includes:
 
     script
     project_root
@@ -1709,268 +1233,268 @@ It includes:
     canonical_key
     canonical_representation
     canonical_shape
-    normalization
+    root_joint_index
+    local_normalization
+    global_motion
+    global_normalization
+    root_velocity
     canonical_information_reduced
+    reconstruction_check
     processed
     failed
     files_found
     failed_files
     results
 
-This provides a machine-readable record of the preprocessing stage.
+---
+
+# 53. Summary Configuration
+
+The summary explicitly records:
+
+    canonical_key:
+        full
+
+    canonical_representation:
+        SMPL-X 127
+
+    canonical_shape:
+        [T,127,3]
+
+    root_joint_index:
+        0
+
+    local_normalization:
+        root-centered + sequence-level body scale
+
+    global_motion:
+        preserved
+
+    global_normalization:
+        root displacement from first frame + sequence body scale
+
+    root_velocity:
+        frame-to-frame displacement
+
+    canonical_information_reduced:
+        false
+
+    reconstruction_check:
+        true
 
 ---
 
-# 65. Error Handling
+# 54. Per-File Summary
 
-Each NPZ file is processed independently.
+For every successful file, the summary records:
 
-If a file fails:
+    input
+    output
+    frames
+    input_shape
+    output_shape
+    body_scale
+    global_features
+    derived_shapes
+    reconstruction
+    status
 
-    The error is reported.
-    The file is added to the failed list.
-    Processing continues with the next file.
+A successful file has:
 
-Therefore one corrupted or incompatible file does not necessarily stop the entire dataset preprocessing run.
+    status:
+        success
 
----
+A failed file has:
 
-# 66. `--limit`
+    status:
+        failed
 
-The script supports:
-
-    --limit N
-
-For example:
-
-    python 04_normalize_motion.py --limit 5
-
-processes only the first five discovered NPZ files.
-
-This is useful for:
-
-    debugging
-    validation
-    visual inspection
-    testing
-
-before processing the entire dataset.
-
-Once the pipeline is verified, the complete dataset can be processed without the limit.
+and includes the error message.
 
 ---
 
-# 67. Recommended Full-Dataset Run
+# 55. Failure Behavior
 
-After validation, the intended full-dataset execution is:
+The following can cause a file to fail:
 
-    python 04_normalize_motion.py
+    missing `full`
+    wrong dimensionality
+    wrong joint count
+    wrong coordinate dimension
+    zero frames
+    NaN
+    Inf
+    invalid body scale
+    reconstruction error > 1e-4
+    other processing exceptions
 
-This processes all NPZ files under:
-
-    data/processed/joints/
-
-and writes the corresponding normalized files under:
-
-    data/processed/normalized/
-
----
-
-# 68. Important File-Level Contract
-
-Every normalized NPZ should be considered a self-contained motion sample.
-
-The file contains:
-
-    Canonical local body motion
-    +
-    Global root motion
-    +
-    Normalization metadata
-    +
-    Derived representations
-
-This makes each NPZ independently interpretable by downstream stages.
+A failed file does not stop the processing of the remaining files.
 
 ---
 
-# 69. Recommended Interpretation of Each Tensor
+# 56. Exact Output Contract
 
-For future development, the following interpretation should be treated as the canonical contract.
+A successfully processed file follows this structure:
 
     full
-        = normalized local body motion
+        [T,127,3]
+        root-centered
+        sequence-scale normalized
 
     root_positions
-        = original global root trajectory
+        [T,3]
+        original root trajectory
 
     root_positions_normalized
-        = normalized global root trajectory
+        [T,3]
+        root displacement / body scale
 
     root_displacement
-        = global displacement relative to initial position
+        [T,3]
+        root position relative to first frame
+
+    root_displacement_normalized
+        [T,3]
+        root displacement / body scale
 
     root_velocity
-        = global root motion between frames
+        [T,3]
+        frame-to-frame root displacement
+
+    root_velocity_normalized
+        [T,3]
+        frame-to-frame displacement / body scale
 
     body_scale
-        = sequence normalization scale
+        scalar float32
 
     body_core
-        = reduced body representation
+        preserved from Stage 03 if present
 
     body_contact
-        = contact-related representation
+        preserved from Stage 03 if present
 
     hands
-        = hand representation
+        preserved from Stage 03 if present
 
     face
-        = face representation
+        preserved from Stage 03 if present
+
+    metadata
+        source
+        representation
+        normalization
+        root_joint_index
+        global_motion
+        root_velocity_unit
+
+    reconstruction metrics
+        reconstruction_max_abs_error
+        reconstruction_mean_abs_error
+        reconstruction_rmse
 
 ---
 
-# 70. Local + Global Is the Core Design
+# 57. What Is Actually Normalized?
 
-The most important conceptual decision of this stage is:
-
-    LOCAL ≠ GLOBAL
-
-They should not be forced into a single representation.
-
-Instead:
-
-    Local body motion
-        ->
-        `full`
-
-and:
-
-    Global motion
-        ->
-        root motion tensors
-
-This gives the project flexibility for later representation learning.
-
----
-
-# 71. Future Model Usage
-
-A future model may use only:
+Only the following are directly transformed by the local normalization step:
 
     full
 
-if the objective is local body-motion learning.
+The transformation is:
 
-Or it may use:
-
-    full
+    root-center
     +
+    divide by sequence body scale
+
+Global representations are additionally normalized as follows:
+
     root_positions_normalized
+        =
+        root_displacement / body_scale
 
-if global trajectory is relevant.
+    root_displacement_normalized
+        =
+        root_displacement / body_scale
 
-Or:
-
-    full
-    +
-    root_velocity
-
-if locomotion dynamics are important.
-
-Or all available motion features can be combined.
-
-The dataset therefore does not lock the project into one particular model architecture.
+    root_velocity_normalized
+        =
+        root_velocity / body_scale
 
 ---
 
-# 72. Potential Future Representation
+# 58. What Is Preserved Without Normalization?
 
-A later learning stage can conceptually use:
+The following remain in their original representation:
 
-    Pose Encoder
-        |
-        |---- full
-        |
-        v
-    Local Motion Latent
+    root_positions
 
+and the Stage 03 derived tensors:
 
-    Root Encoder
-        |
-        |---- root_positions_normalized
-        |---- root_velocity
-        |
-        v
-    Global Motion Latent
+    body_core
+    body_contact
+    hands
+    face
 
-
-    Local Latent + Global Latent
-                |
-                v
-          Motion Representation
-
-This separation can be useful for latent objective learning because local body configuration and global locomotion are related but distinct sources of information.
+The original root trajectory is therefore available in its original dataset coordinate system.
 
 ---
 
-# 73. Reconstruction Contract
+# 59. What Is Removed From `full`?
 
-The normalized file should be considered valid if the following relationship approximately holds:
+The per-frame global root translation is removed from `full`.
 
-    original ≈ full * body_scale + root_positions
+This happens through:
 
-The small difference comes from numerical floating-point precision.
+    joints - root_positions
 
-This reconstruction property should be preserved in future modifications of the normalization stage.
+The root-centered local configuration remains.
 
-If a future modification produces a large reconstruction error, the normalization pipeline should be considered potentially broken until investigated.
-
----
-
-# 74. Important Invariant #1 — Joint Count
-
-The canonical joint count must remain:
-
-    127
-
-Never silently change:
-
-    full
-
-to a reduced representation.
+The global root trajectory is not discarded because it is separately stored.
 
 ---
 
-# 75. Important Invariant #2 — Temporal Length
+# 60. Reconstruction Contract
 
-For every input sequence:
+The fundamental reconstruction equation is:
+
+    original =
+        full * body_scale
+        + root_positions
+
+within floating-point precision.
+
+This relationship is one of the key invariants of Stage 04.
+
+---
+
+# 61. Important Invariants
+
+## Invariant 1 — Canonical joint count
+
+    127 joints
+
+must remain in `full`.
+
+---
+
+## Invariant 2 — Temporal length
 
     input T == output T
 
-No frame should be removed by this normalization stage.
-
 ---
 
-# 76. Important Invariant #3 — Local Motion
+## Invariant 3 — Root-centered local representation
 
-The normalized `full` representation must remain:
+The root of `full` should be:
 
-    root-centered
-
-The root joint in `full` should therefore be approximately:
-
-    [0,0,0]
+    approximately [0,0,0]
 
 for every frame.
 
 ---
 
-# 77. Important Invariant #4 — Global Motion
-
-Global root movement must not be discarded.
-
-At minimum:
+## Invariant 4 — Global root preservation
 
     root_positions
 
@@ -1978,27 +1502,51 @@ must remain available.
 
 ---
 
-# 78. Important Invariant #5 — Sequence-Level Scale
+## Invariant 5 — Sequence-level body scale
 
-The local body scale must be one scalar per sequence.
+There is exactly one:
 
-It must not vary independently from frame to frame.
+    body_scale
 
----
-
-# 79. Important Invariant #6 — Reconstruction
-
-The original motion should remain reconstructible:
-
-    original ≈ full * body_scale + root_positions
-
-within floating-point precision.
+per sequence.
 
 ---
 
-# 80. Important Invariant #7 — Derived Data Preservation
+## Invariant 6 — Reconstruction
 
-The following derived representations should remain available when present in the input:
+    original ≈
+        full * body_scale
+        + root_positions
+
+---
+
+## Invariant 7 — Global normalized trajectory
+
+The normalized trajectory is based on:
+
+    root_displacement / body_scale
+
+not directly on the original absolute root positions.
+
+---
+
+## Invariant 8 — Root velocity convention
+
+    root_velocity
+
+means:
+
+    frame-to-frame displacement
+
+not:
+
+    meters/second
+
+---
+
+## Invariant 9 — Stage 03 derived representations
+
+When present, these are preserved without Stage 04 normalization:
 
     body_core
     body_contact
@@ -2007,238 +1555,397 @@ The following derived representations should remain available when present in th
 
 ---
 
-# 81. Important Invariant #8 — Dataset Traceability
+# 62. What Stage 04 Does NOT Do
 
-Each output file should preserve its relationship with the source file.
+This script does not:
 
-The `source` metadata is therefore retained.
-
----
-
-# 82. What This Stage Does NOT Do
-
-Stage 04 does NOT:
-
-    perform motion retargeting
-    change the skeleton topology
-    reduce 127 joints to a smaller canonical skeleton
-    perform temporal resampling
-    perform motion interpolation
-    perform motion segmentation
+    reduce 127 joints
+    retarget motion
+    change skeleton topology
+    resample time
+    interpolate frames
+    crop motion
+    reorder frames
     classify actions
-    learn a neural representation
     train a model
-    generate latent embeddings
+    create latent embeddings
     perform inverse kinematics
-    perform trajectory prediction
+    predict future motion
+    estimate physical velocity from FPS
+    render animations
 
-This stage is specifically a deterministic motion representation and normalization stage.
-
----
-
-# 83. Deterministic Nature
-
-The normalization is deterministic.
-
-Given the same input NPZ and the same implementation:
-
-    the same normalized representation
-    and
-    the same normalization scale
-
-should be produced.
-
-No learned model is involved in this stage.
+Its job is deterministic normalization and preservation of global root motion.
 
 ---
 
-# 84. Why This Stage Comes Before Learning
+# 63. Why the Separation Matters
 
-The purpose of preprocessing is to provide a consistent coordinate representation before learning.
+The output intentionally separates:
 
-Without this step, a future model may learn undesirable correlations related to:
+    Local body configuration
 
-    initial position
+from:
+
+    Global root trajectory
+
+This allows downstream stages to use:
+
+    full
+
+when they need canonical local body motion,
+
+or:
+
+    full
+    +
+    root motion features
+
+when global locomotion is also important.
+
+---
+
+# 64. Conceptual Representation
+
+The complete Stage 04 representation can be summarized as:
+
+    Original SMPL-X 127 Motion
+                |
+                +------------------------------+
+                |                              |
+                v                              v
+        Root-centered body              Root trajectory
+                |                              |
+                v                              |
+        Sequence body scale                   |
+                |                              |
+                v                              |
+        Normalized `full`                     |
+                |                              |
+                |              +---------------+---------------+
+                |              |               |               |
+                |              v               v               v
+                |        displacement      velocity       normalized
+                |              |               |           trajectory
+                |              |               |
+                +--------------+---------------+----------------
+                               |
+                               v
+                       Normalized NPZ
+
+---
+
+# 65. Key Difference Between Local and Global
+
+`full` answers:
+
+    What is the body doing relative to its root?
+
+`root_positions` answers:
+
+    Where is the root in the original coordinate system?
+
+`root_displacement` answers:
+
+    How far has the root moved from the starting position?
+
+`root_positions_normalized` answers:
+
+    How far has the root moved from the starting position after body-scale normalization?
+
+`root_velocity` answers:
+
+    How much did the root move between consecutive frames?
+
+`root_velocity_normalized` answers:
+
+    How much did the root move per frame after body-scale normalization?
+
+Together these provide both local and global motion information.
+
+---
+
+# 66. Example Tensor Inventory
+
+For a sequence with:
+
+    T = 360
+
+the main output tensors are:
+
+    full
+        (360,127,3)
+
+    root_positions
+        (360,3)
+
+    root_positions_normalized
+        (360,3)
+
+    root_displacement
+        (360,3)
+
+    root_displacement_normalized
+        (360,3)
+
+    root_velocity
+        (360,3)
+
+    root_velocity_normalized
+        (360,3)
+
+and:
+
+    body_scale
+        scalar
+
+If the input contains the Stage 03 derived representations, they are also copied into the output.
+
+---
+
+# 67. Numerical Precision
+
+The implementation converts the main normalized and root-motion tensors to:
+
+    float32
+
+The reconstruction error is evaluated using:
+
+    float64
+
+to make the error calculation more reliable.
+
+Small reconstruction errors are therefore expected because the stored motion representation uses float32 values.
+
+---
+
+# 68. Safety Philosophy
+
+Stage 04 does not assume that a successful NumPy operation automatically means the output is correct.
+
+It explicitly validates:
+
+    input shape
+    finite values
     body scale
-    global coordinate offset
+    reconstruction error
 
-Instead, the model can focus on meaningful motion structure.
-
-The normalization therefore acts as a representation standardization layer between raw processed motion and learned motion representations.
+This makes the preprocessing stage more robust for later large-scale processing.
 
 ---
 
-# 85. Conceptual Summary
+# 69. Stage 04 in One Formula
 
-The entire transformation can be summarized as:
+The complete local transformation is:
 
-    RAW HUMAN MOTION
-            |
-            v
-    SMPL-X 127
-            |
-            +-----------------------------+
-            |                             |
-            v                             v
-    ROOT-CENTERED BODY              ORIGINAL ROOT
-            |                             |
-            v                             v
-    SEQUENCE BODY SCALE          GLOBAL TRAJECTORY
-            |                             |
-            v                             +--> displacement
-    NORMALIZED LOCAL BODY              |
-            |                          +--> velocity
-            v                          |
-          `full`                       +--> normalized trajectory
-            |
-            +-----------------------------+
-                          |
-                          v
-                 NORMALIZED NPZ
+    full =
+        (joints - joints[:,0:1,:])
+        /
+        max(
+            norm(
+                joints - joints[:,0:1,:]
+            )
+        )
 
----
+where the maximum is taken across the complete sequence and all joints.
 
-# 86. Final Dataset Philosophy
+The global trajectory is:
 
-The normalized dataset follows one central philosophy:
+    root_displacement =
+        joints[:,0,:] - joints[0,0,:]
 
-> Canonicalize what should be canonicalized, but preserve information that represents meaningful motion.
+and:
 
-Therefore:
+    root_positions_normalized =
+        root_displacement / body_scale
 
-    Initial global position
-        can be removed from the local body representation.
+The root frame displacement is:
 
-But:
+    root_velocity[0] = 0
 
-    Global movement
-        must be preserved.
+    root_velocity[t] =
+        root_positions[t] - root_positions[t-1]
 
-Similarly:
+and:
 
-    Body scale differences
-        can be normalized.
-
-But:
-
-    Temporal body dynamics
-        must be preserved.
-
-This balance is the main purpose of Stage 04.
+    root_velocity_normalized =
+        root_velocity / body_scale
 
 ---
 
-# 87. Final Stage Result
+# 70. Final Stage Philosophy
 
-Stage 04 successfully establishes a dual representation for human motion:
+The core philosophy is:
 
-## Local representation
+    Normalize local body motion
+    +
+    Preserve global root motion
+    +
+    Keep the canonical 127-joint representation
+    +
+    Verify reconstruction
 
-    `full`
+The normalization does not replace the complete motion.
 
-    Shape:
+It creates a structured representation in which local and global components are explicitly available.
+
+---
+
+# 71. Final Stage Result
+
+Stage 04 produces:
+
+    Canonical local motion
+        ->
+        full [T,127,3]
+
+plus:
+
+    Original global root motion
+        ->
+        root_positions
+
+plus:
+
+    Offset-independent global motion
+        ->
+        root_displacement
+
+plus:
+
+    Scale-normalized global trajectory
+        ->
+        root_positions_normalized
+        root_displacement_normalized
+
+plus:
+
+    Frame-to-frame global motion
+        ->
+        root_velocity
+
+plus:
+
+    Scale-normalized frame-to-frame motion
+        ->
+        root_velocity_normalized
+
+plus:
+
+    Sequence normalization scale
+        ->
+        body_scale
+
+plus:
+
+    Stage 03 representations
+        ->
+        body_core
+        body_contact
+        hands
+        face
+
+plus:
+
+    Traceability and validation metadata.
+
+---
+
+# 72. Final Status
+
+Stage 04 — Human Motion Normalization
+
+    STATUS:
+        COMPLETED
+
+    SCRIPT:
+        04_normalize_motion.py
+
+    CANONICAL KEY:
+        full
+
+    CANONICAL REPRESENTATION:
+        SMPL-X 127
+
+    CANONICAL SHAPE:
         [T,127,3]
 
-    Contains:
-        Root-centered,
-        sequence-level body-scale normalized
-        SMPL-X motion.
+    ROOT JOINT:
+        index 0
 
-## Global representation
-
-    `root_positions`
-    `root_positions_normalized`
-    `root_displacement`
-    `root_velocity`
-
-    Contains:
-        Global root trajectory and motion.
-
-Together they provide:
-
-    Local Body Motion
+    LOCAL NORMALIZATION:
+        root-centered
         +
-    Global Motion
+        sequence-level body scale
 
-without sacrificing the canonical 127-joint representation.
+    GLOBAL MOTION:
+        preserved
 
----
+    GLOBAL NORMALIZATION:
+        root displacement from first frame
+        +
+        sequence body scale
 
-# 88. Final Status
+    ROOT VELOCITY:
+        frame-to-frame displacement
 
-Stage 04 — Human Motion Normalization:
+    ROOT VELOCITY UNIT:
+        dataset_units_per_frame
 
-    STATUS: COMPLETED
+    CANONICAL INFORMATION REDUCED:
+        False
 
-Validation:
+    RECONSTRUCTION CHECK:
+        Enabled
 
-    Canonical SMPL-X 127:
-        PASS
-
-    Root-centering:
-        PASS
-
-    Sequence-level body scaling:
-        PASS
-
-    Global root preservation:
-        PASS
-
-    Root displacement:
-        PASS
-
-    Root velocity:
-        PASS
-
-    Reconstruction check:
-        PASS
-
-    Derived representation preservation:
-        PASS
-
-    Test subset:
-        5 files
-
-    Processed:
-        5
-
-    Failed:
-        0
-
-Observed reconstruction errors:
-
-    approximately 1e-7
-
-which is consistent with float32 numerical precision.
+    RECONSTRUCTION THRESHOLD:
+        max_abs_error <= 1e-4
 
 ---
 
-# 89. One-Sentence Definition of Stage 04
-
-If this entire stage needs to be remembered in one sentence:
-
-> Stage 04 converts SMPL-X 127 human motion into a canonical root-centered, sequence-scale-normalized local representation while explicitly preserving the global root trajectory, displacement, and velocity so that the complete original motion remains reconstructible.
-
----
-
-# 90. Quick Reference
+# 73. Quick Reference
 
     INPUT
         data/processed/joints/**/*.npz
+
+    OUTPUT
+        data/processed/normalized/**/*.npz
 
     CANONICAL INPUT
         full
         [T,127,3]
 
-    LOCAL OUTPUT
+    CANONICAL OUTPUT
         full
         [T,127,3]
 
-    GLOBAL OUTPUT
+    ROOT
+        joint index 0
+
+    LOCAL NORMALIZATION
+        centered = joints - root_position
+        full = centered / body_scale
+
+    BODY SCALE
+        max norm of centered joints
+        across the complete sequence
+
+    GLOBAL ORIGINAL
         root_positions
-        root_positions_normalized
+
+    GLOBAL DISPLACEMENT
         root_displacement
+
+    GLOBAL NORMALIZED TRAJECTORY
+        root_positions_normalized
+
+    GLOBAL NORMALIZED DISPLACEMENT
+        root_displacement_normalized
+
+    GLOBAL FRAME DISPLACEMENT
         root_velocity
+
+    GLOBAL NORMALIZED FRAME DISPLACEMENT
+        root_velocity_normalized
 
     SCALE
         body_scale
@@ -2253,54 +1960,37 @@ If this entire stage needs to be remembered in one sentence:
         source
         representation
         normalization
+        root_joint_index
+        global_motion
+        root_velocity_unit
+
+    RECONSTRUCTION METRICS
+        reconstruction_max_abs_error
+        reconstruction_mean_abs_error
+        reconstruction_rmse
 
     SUMMARY
         _normalization_summary.json
 
-    LOCAL NORMALIZATION
-        root-centered
-        +
-        sequence-level body scale
-
-    GLOBAL MOTION
-        preserved separately
-
     RECONSTRUCTION
-        original ≈ full * body_scale + root_positions
-
-    VALIDATION
-        reconstruction error ≈ 1e-7
-
-    CANONICAL REPRESENTATION
-        SMPL-X 127
+        original ≈
+        full * body_scale + root_positions
 
     STATUS
         COMPLETED
 
 ---
 
-# 91. Video Reference
+# 74. Video Reference
 
-The execution and visual validation of this stage are documented in the project video:
+Execution / demonstration video:
 
 https://youtu.be/Gka6i7_VcUs
 
-Video title:
-
-    Human Motion Normalization | SMPL-X 127 Joint Dataset | Local + Global Motion Pipeline
+The video is associated with Stage 04 and documents the execution/demonstration of this stage.
 
 ---
 
-# 92. End of Stage 04 Documentation
+# 75. One-Sentence Definition
 
-Stage 04 establishes the normalized human-motion data representation used as the foundation for subsequent stages of the Latent Objective Humanoid project.
-
-The key principle to carry forward is:
-
-    LOCAL BODY MOTION
-        +
-    GLOBAL ROOT MOTION
-
-rather than treating root-centered normalization as a complete replacement for global motion.
-
-The canonical SMPL-X 127 representation remains intact, local body motion is normalized, global root motion is preserved, and reconstruction has been numerically verified.
+Stage 04 deterministically converts SMPL-X 127-joint motion into a root-centered, sequence-body-scale-normalized local representation while preserving the original root trajectory, displacement, frame-to-frame root motion, normalized global motion features, Stage 03 derived representations, and enough information to reconstruct the original motion within a `1e-4` maximum absolute-error threshold.
