@@ -2,6 +2,7 @@
 
 ## Current Motion Representation
 
+```text
                          STAGE 04
                             │
        ┌────────────────────┼────────────────────┐
@@ -15,29 +16,25 @@
    Root position         Distances
    Root motion            Body velocity
    Body scale
-
+```
 
 ## Question
 
-Which motion features should we extract for the
-latent objective learning stage?
+Which motion features should we extract for the **latent objective learning** stage?
 
 In particular:
 
-- Which derived features would be most useful?
-- Should contact information be included?
-- Should motion-phase information be included?
-- Are there specific motion features you recommend
-  for humanoid control and latent objective learning?
-
+* Which derived features would be most useful?
+* Should contact information be included?
+* Should motion-phase information be included?
+* Are there specific motion features you recommend for humanoid control and latent objective learning?
 
 ## What We Want
 
-We want to define the feature extraction stage
-based on your recommendation before implementing
-`05_extract_features.py`.
+We want to define the feature extraction stage based on your recommendation before implementing:
 
-The goal is to avoid extracting unnecessary features
-and make the motion representation useful for the
-subsequent latent objective learning and humanoid
-control stages.
+```text
+05_extract_features.py
+```
+
+The goal is to avoid extracting unnecessary features while ensuring that the resulting motion representation is sufficiently informative for the subsequent **latent objective learning** and **humanoid control** stages.
