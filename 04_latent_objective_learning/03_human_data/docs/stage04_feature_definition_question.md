@@ -2,42 +2,52 @@
 
 ## Current Motion Representation
 
-                         STAGE 04
-                            │
-       ┌────────────────────┼────────────────────┐
-       │                    │                    │
-     DIRECT               DERIVED           NOT DEFINED
-       │                    │                    │
-   127 Joint positions   Joint velocity    Contact probability
-   22 Body-core joints   Acceleration      Contact labels
-   40 Hand joints        Foot velocity     Motion phase
-   59 Face joints        Geometric angles  Semantic labels
-   Root position         Distances
-   Root motion            Body velocity
-   Body scale
+The current normalized motion data contains the following information:
 
+| Category | Currently Available | Status |
+|---|---|---|
+| **Direct** | 127 Joint positions | Available |
+| **Direct** | 22 Body-core joints | Available |
+| **Direct** | 40 Hand joints | Available |
+| **Direct** | 59 Face joints | Available |
+| **Direct** | Root position | Available |
+| **Direct** | Root motion | Available |
+| **Direct** | Body scale | Available |
+| **Derived** | Joint velocity | Can be extracted |
+| **Derived** | Joint acceleration | Can be extracted |
+| **Derived** | Foot velocity | Can be extracted |
+| **Derived** | Geometric angles | Can be extracted |
+| **Derived** | Joint/segment distances | Can be extracted |
+| **Derived** | Body-part velocity | Can be extracted |
+| **Not defined** | Contact probability | Not currently defined |
+| **Not defined** | Contact labels | Not currently defined |
+| **Not defined** | Motion phase | Not currently defined |
+| **Not defined** | Semantic labels | Not currently defined |
+
+---
 
 ## Question
 
-Which motion features should we extract for the
-latent objective learning stage?
+**Which motion features should we extract for the latent objective learning stage?**
 
 In particular:
 
-- Which derived features would be most useful?
-- Should contact information be included?
-- Should motion-phase information be included?
-- Are there specific motion features you recommend
-  for humanoid control and latent objective learning?
+1. Which derived features would be most useful?
+2. Should contact information be included?
+3. Should motion-phase information be included?
+4. Are there specific motion features you recommend for humanoid control and latent objective learning?
 
+---
 
 ## What We Want
 
-We want to define the feature extraction stage
-based on your recommendation before implementing
-`05_extract_features.py`.
+Before implementing `05_extract_features.py`, we would like to define the feature set based on your recommendation.
 
-The goal is to avoid extracting unnecessary features
-and make the motion representation useful for the
-subsequent latent objective learning and humanoid
-control stages.
+The goal is to:
+
+- extract only useful motion features,
+- avoid unnecessary features,
+- keep the representation suitable for latent objective learning,
+- and make the resulting dataset useful for the subsequent humanoid control stages.
+
+**We would appreciate your recommendation on the feature definition for Stage 04.**
